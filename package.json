@@ -1,0 +1,36 @@
+{
+  "name": "read-aloud-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Open-source toolkit for read-aloud speech analysis, CTC decoding, forced alignment, and word-level error detection.",
+  "author": "Jayden <33676809+JaydenV8@users.noreply.github.com>",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "dev": "pnpm --filter @readaloudkit/api dev",
+    "test": "vp test run",
+    "lint": "oxlint .",
+    "oxlint": "oxlint .",
+    "fmt": "oxfmt .",
+    "oxfmt": "oxfmt .",
+    "check": "vp check",
+    "models:download": "tsx scripts/download-models.ts",
+    "analyze": "tsx packages/cli/src/index.ts"
+  },
+  "dependencies": {
+    "@readaloudkit/audio": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "oxfmt": "^0.16.0",
+    "oxlint": "^1.78.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "vite-plus": "^0.1.24",
+    "vitest": "^3.2.7"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["onnxruntime-node"]
+  }
+}
