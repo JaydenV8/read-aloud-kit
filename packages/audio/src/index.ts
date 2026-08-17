@@ -4,6 +4,17 @@ export type Pcm = {
   durationMs: number
 }
 
+/**
+ * Something wrong with the caller's audio, not with us.
+ *
+ * The `status` is what marks a message as safe to hand back: a server maps
+ * anything untagged to a generic failure, because an untagged error came from
+ * inside and its text tends to carry local detail.
+ */
+export function badAudio(message: string): Error & { status: number } {
+  return Object.assign(new Error(message), { status: 400 })
+}
+
 function readU32(v: DataView, o: number) {
   return v.getUint32(o, true)
 }
@@ -12,11 +23,11 @@ function readU16(v: DataView, o: number) {
 }
 
 export function decodeWav(buf: Uint8Array): Pcm {
-  if (buf.byteLength < 12) throw new Error('audio too small')
+  if (buf.byteLength < 12) throw badAudio('audio too small')
   const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
   const tag = String.fromCharCode(buf[0]!, buf[1]!, buf[2]!, buf[3]!)
   if (tag !== 'RIFF')
-    throw new Error('only WAV is parsed in-process; install ffmpeg for other types')
+    throw badAudio('only WAV is parsed in-process; install ffmpeg for other types')
   let offset = 12
   let sampleRate = 16000
   let channels = 1
@@ -45,7 +56,7 @@ export function decodeWav(buf: Uint8Array): Pcm {
     }
     offset = start + size + (size % 2)
   }
-  if (dataOff < 0) throw new Error('WAV missing data chunk')
+  if (dataOff < 0) throw badAudio('WAV missing data chunk')
   const n = Math.floor(dataLen / ((bits / 8) * channels))
   const mono = new Float32Array(n)
   if (format === 1 && bits === 16) {
@@ -68,7 +79,7 @@ export function decodeWav(buf: Uint8Array): Pcm {
       mono[i] = acc / channels
     }
   } else {
-    throw new Error(`unsupported WAV format=${format} bits=${bits}`)
+    throw badAudio(`unsupported WAV format=${format} bits=${bits}`)
   }
   return { samples: mono, sampleRate, durationMs: (n / sampleRate) * 1000 }
 }
@@ -111,8 +122,10 @@ export async function maybeFfmpegToWav(input: Uint8Array, mime: string): Promise
       ['-y', '-i', src, '-ac', '1', '-ar', '16000', '-sample_fmt', 's16', dest],
       { stdio: 'ignore' },
     )
-    p.on('error', () => reject(new Error('ffmpeg is required for non-WAV audio')))
-    p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('ffmpeg failed'))))
+    p.on('error', () => reject(badAudio('ffmpeg is required for non-WAV audio')))
+    p.on('exit', (code) =>
+      code === 0 ? resolve() : reject(badAudio('audio could not be converted to WAV')),
+    )
   })
   const out = await readFile(dest)
   await rm(dir, { recursive: true, force: true })

@@ -1,0 +1,14 @@
+{
+  "name": "@readaloudkit/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@readaloudkit/core": "workspace:*"
+  }
+}
