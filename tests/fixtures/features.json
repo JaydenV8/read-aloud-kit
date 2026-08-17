@@ -1,0 +1,112 @@
+{
+  "ref_text": "the quick brown fox jumps",
+  "duration": 5.0,
+  "words": [
+    {
+      "tok": "the",
+      "t0": 0.3,
+      "t1": 0.45
+    },
+    {
+      "tok": "quick",
+      "t0": 0.52,
+      "t1": 0.9
+    },
+    {
+      "tok": "brown",
+      "t0": 1.6,
+      "t1": 2.05
+    },
+    {
+      "tok": "fox",
+      "t0": 2.25,
+      "t1": 2.6
+    },
+    {
+      "tok": "jumps",
+      "t0": 2.9,
+      "t1": 3.5
+    }
+  ],
+  "pauses": [
+    {
+      "t0": 0.0,
+      "t1": 0.3,
+      "where": "lead"
+    },
+    {
+      "t0": 0.9,
+      "t1": 1.6,
+      "where": "mid"
+    },
+    {
+      "t0": 2.05,
+      "t1": 2.25,
+      "where": "mid"
+    },
+    {
+      "t0": 2.6,
+      "t1": 2.9,
+      "where": "mid"
+    },
+    {
+      "t0": 3.5,
+      "t1": 5.0,
+      "where": "tail"
+    }
+  ],
+  "prosody": {
+    "duration": 5.0,
+    "n_ref": 5.0,
+    "n_aligned": 5.0,
+    "coverage": 1.0,
+    "spoken_sec": 1.93,
+    "wpm": 155.44041450777203,
+    "n_pause": 3.0,
+    "pause_total": 1.2000000000000002,
+    "pause_max": 0.7000000000000001,
+    "pause_mean": 0.4000000000000001,
+    "pause_ratio": 0.24000000000000005,
+    "word_dur_mean": 0.386,
+    "word_dur_std": 0.16349311912126455,
+    "word_dur_cv": 0.42355730342296516,
+    "lead_sil": 0.3,
+    "tail_sil": 1.5,
+    "align_ok": 1.0
+  },
+  "mid_gaps": [
+    [
+      0.45,
+      0.52
+    ],
+    [
+      0.9,
+      1.6
+    ],
+    [
+      2.05,
+      2.25
+    ],
+    [
+      2.6,
+      2.9
+    ]
+  ],
+  "adaptive_gaps": [
+    [
+      0.9,
+      1.6
+    ]
+  ],
+  "tone": {
+    "sample_rate": 16000,
+    "n": 8000,
+    "hz": 220.0
+  },
+  "acoustic": {
+    "rms_mean": 0.5692100524902344,
+    "rms_std": 0.5692100524902344,
+    "rms_peak": 0.8999999761581421,
+    "active_ratio": 0.8
+  }
+}
