@@ -1,0 +1,5 @@
+{
+  "file": "wav2vec2-base-960h-ctc.onnx",
+  "sha256": "84182b6d8d3abc71ea583670cc11434d0f894663ef65a88db693a7890d084a85",
+  "class": "EXTERNAL_PRETRAINED"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@readaloudkit/inference",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "onnxruntime-node": "^1.22.0",
+    "@readaloudkit/types": "workspace:*"
+  }
+}
