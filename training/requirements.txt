@@ -1,0 +1,7 @@
+# Training and export. Nothing here runs in the serving path.
+numpy>=1.24
+lightgbm>=4.0
+scikit-learn>=1.3
+joblib>=1.3
+onnxmltools>=1.12
+onnxruntime>=1.17

@@ -11,6 +11,15 @@ importers:
       '@readaloudkit/audio':
         specifier: workspace:*
         version: link:packages/audio
+      '@readaloudkit/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@readaloudkit/features':
+        specifier: workspace:*
+        version: link:packages/features
+      '@readaloudkit/gop':
+        specifier: workspace:*
+        version: link:packages/gop
     devDependencies:
       '@types/node':
         specifier: ^22.20.1
