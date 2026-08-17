@@ -1,0 +1,24 @@
+{
+  "name": "@readaloudkit/core",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@readaloudkit/audio": "workspace:*",
+    "@readaloudkit/inference": "workspace:*",
+    "@readaloudkit/ctc": "workspace:*",
+    "@readaloudkit/alignment": "workspace:*",
+    "@readaloudkit/gop": "workspace:*",
+    "@readaloudkit/edits": "workspace:*",
+    "@readaloudkit/features": "workspace:*",
+    "@readaloudkit/prosody": "workspace:*",
+    "@readaloudkit/tips": "workspace:*",
+    "@readaloudkit/scoring": "workspace:*",
+    "@readaloudkit/types": "workspace:*"
+  }
+}
