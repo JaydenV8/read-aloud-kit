@@ -1,0 +1,14 @@
+{
+  "name": "@readaloudkit/gop",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@readaloudkit/types": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  }
+}
