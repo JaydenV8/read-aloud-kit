@@ -1,0 +1,32 @@
+ReadAloudKit
+Copyright 2026 the ReadAloudKit authors
+
+This product includes software developed for ReadAloudKit, licensed under the
+Apache License, Version 2.0. See LICENSE.
+
+--------------------------------------------------------------------------------
+Training data
+
+The community scoring heads distributed with this project were trained on
+speechocean762, licensed under the Creative Commons Attribution 4.0
+International licence (CC BY 4.0).
+
+    speechocean762: An Open-Source Non-Native English Speech Corpus for
+    Pronunciation Assessment. Interspeech 2021.
+    https://www.openslr.org/101/
+    https://creativecommons.org/licenses/by/4.0/
+
+The corpus itself is not redistributed here. The heads are a derivative of it;
+CC BY carries no ShareAlike condition, so they are licensed separately, but the
+attribution above travels with them.
+
+--------------------------------------------------------------------------------
+Acoustic model
+
+The optional acoustic checkpoint is an ONNX export of
+torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H, i.e. Facebook's
+wav2vec2-base-960h, pretrained and fine-tuned on LibriSpeech 960h. Those weights
+are third-party and are covered by their original upstream license, not by this
+repository's Apache-2.0.
+
+    https://huggingface.co/facebook/wav2vec2-base-960h

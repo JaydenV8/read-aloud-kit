@@ -8,11 +8,32 @@ It is an ASR model, not a pronunciation-assessment model. Everything downstream 
 
 ## Scoring heads
 
-None ship yet, so `scores.pronunciation`, `scores.fluency` and `scores.overall` are `null`.
+The community heads are LightGBM models exported to ONNX, 1.3 MB for the four the
+runtime loads. They are trained on speechocean762 (CC BY 4.0) and nothing else —
+see `MODEL_CARD.md` for data, splits, held-out results and limitations, and
+`NOTICE` for the attribution that travels with them.
 
-`scores.content` is always present: it comes from counting edits, not from a model.
+| output | head |
+|---|---|
+| `words[].level`, `words[].needsAttention` | `word_level` |
+| `scores.pronunciation` | `utterance_accuracy` |
+| `scores.fluency` | `utterance_fluency` |
+| `scores.overall` | `utterance_total` |
 
-A scoring backend plugs in through the `ScoringBackend` interface in `@readaloudkit/types`. It receives the word list, the per-word GOP features, the 21 utterance prosody features and the content breakdown.
+`word_stress` and `utterance_prosodic` are exported for reproducibility but not
+loaded. Stress reaches 0.044 precision on held-out data, which is worse than
+saying nothing.
+
+`scores.content` is always present: it comes from counting edits, not a model.
+
+Install by placing the exported files in `models/scoring/` next to
+`scoring.json`, or point `READALOUDKIT_SCORING` at another directory. Without
+them the analyzer falls back to the noop backend and the model-derived fields
+stay `null`.
+
+A different backend plugs in through the `ScoringBackend` interface in
+`@readaloudkit/types`. It receives the word list, the per-word GOP features, the
+21 utterance prosody features and the content breakdown.
 
 ## Feature contracts
 

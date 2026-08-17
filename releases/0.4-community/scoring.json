@@ -1,0 +1,295 @@
+{
+  "version": "0.4-community",
+  "inputName": "input",
+  "wordFeatureKeys": [
+    "gopMean",
+    "gopMin",
+    "gopStd",
+    "marginMean",
+    "marginMin",
+    "nFrames",
+    "nChars",
+    "dur",
+    "charPerSec",
+    "blankRatio",
+    "logNFrames"
+  ],
+  "utteranceFeatureKeys": [
+    "coverage",
+    "wpm",
+    "pauseMax",
+    "pauseMean",
+    "pauseRatio",
+    "wordDurMean",
+    "wordDurStd",
+    "wordDurCv",
+    "leadSil",
+    "tailSil",
+    "alignOk",
+    "gopMean",
+    "gopStd",
+    "gopMin",
+    "gopP10",
+    "gopP25",
+    "marginMean",
+    "marginP10",
+    "fracLowGop"
+  ],
+  "wordLevels": [
+    "good",
+    "average",
+    "bad"
+  ],
+  "displayScale": {
+    "from": [
+      0.0,
+      10.0
+    ],
+    "to": [
+      10.0,
+      90.0
+    ]
+  },
+  "heads": {
+    "word_level": {
+      "file": "word_level.onnx",
+      "kind": "classifier",
+      "nFeatures": 11,
+      "bytes": 288472,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 8.940696716308594e-08,
+        "tolerance": 0.0002
+      }
+    },
+    "word_stress": {
+      "file": "word_stress.onnx",
+      "kind": "classifier",
+      "nFeatures": 11,
+      "bytes": 49872,
+      "shipped": false,
+      "parity": {
+        "maxAbs": 5.960464477539063e-08,
+        "tolerance": 0.0002
+      }
+    },
+    "utterance_accuracy": {
+      "file": "utterance_accuracy.onnx",
+      "kind": "regressor",
+      "nFeatures": 19,
+      "bytes": 221275,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 1.9073486328125e-06,
+        "tolerance": 0.002
+      }
+    },
+    "utterance_fluency": {
+      "file": "utterance_fluency.onnx",
+      "kind": "regressor",
+      "nFeatures": 19,
+      "bytes": 634076,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 2.86102294921875e-06,
+        "tolerance": 0.002
+      }
+    },
+    "utterance_prosodic": {
+      "file": "utterance_prosodic.onnx",
+      "kind": "regressor",
+      "nFeatures": 19,
+      "bytes": 383405,
+      "shipped": false,
+      "parity": {
+        "maxAbs": 1.9073486328125e-06,
+        "tolerance": 0.002
+      }
+    },
+    "utterance_total": {
+      "file": "utterance_total.onnx",
+      "kind": "regressor",
+      "nFeatures": 19,
+      "bytes": 187840,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 1.430511474609375e-06,
+        "tolerance": 0.002
+      }
+    }
+  },
+  "outputs": {
+    "words[].level": "word_level",
+    "scores.pronunciation": "utterance_accuracy",
+    "scores.fluency": "utterance_fluency",
+    "scores.overall": "utterance_total"
+  },
+  "metrics": {
+    "word_level": {
+      "n": 15967,
+      "accuracy": 0.7261,
+      "macro_f1": 0.4753,
+      "per_class": {
+        "good": {
+          "precision": 0.9636,
+          "recall": 0.7541,
+          "f1": 0.8461,
+          "support": 14062
+        },
+        "average": {
+          "precision": 0.1731,
+          "recall": 0.4366,
+          "f1": 0.2479,
+          "support": 1010
+        },
+        "bad": {
+          "precision": 0.2274,
+          "recall": 0.6134,
+          "f1": 0.3318,
+          "support": 895
+        }
+      },
+      "confusion": [
+        [
+          10604,
+          1894,
+          1564
+        ],
+        [
+          268,
+          441,
+          301
+        ],
+        [
+          133,
+          213,
+          549
+        ]
+      ],
+      "majority_class_accuracy": 0.8807
+    },
+    "word_stress": {
+      "n": 15967,
+      "accuracy": 0.9102,
+      "macro_f1": 0.5168,
+      "per_class": {
+        "correct": {
+          "precision": 0.9956,
+          "recall": 0.9135,
+          "f1": 0.9528,
+          "support": 15840
+        },
+        "wrong": {
+          "precision": 0.044,
+          "recall": 0.4961,
+          "f1": 0.0808,
+          "support": 127
+        }
+      },
+      "confusion": [
+        [
+          14470,
+          1370
+        ],
+        [
+          64,
+          63
+        ]
+      ],
+      "majority_class_accuracy": 0.992
+    },
+    "utterance_accuracy": {
+      "n": 2500,
+      "pearson": 0.6519,
+      "mae": 0.8648,
+      "rmse": 1.1732,
+      "predict_mean_mae": 1.131
+    },
+    "utterance_fluency": {
+      "n": 2500,
+      "pearson": 0.7292,
+      "mae": 0.7063,
+      "rmse": 0.9756,
+      "predict_mean_mae": 1.0559
+    },
+    "utterance_prosodic": {
+      "n": 2500,
+      "pearson": 0.7155,
+      "mae": 0.7307,
+      "rmse": 1.0013,
+      "predict_mean_mae": 1.1233
+    },
+    "utterance_total": {
+      "n": 2500,
+      "pearson": 0.6836,
+      "mae": 0.8266,
+      "rmse": 1.132,
+      "predict_mean_mae": 1.1821
+    }
+  },
+  "provenance": {
+    "corpora": [
+      {
+        "name": "speechocean762",
+        "license": "CC BY 4.0",
+        "url": "https://www.openslr.org/resources/101/speechocean762.tar.gz",
+        "sha256": "876c34b828c2ebcc35ba2ff1ba5947d50e6b0162fc4a4af91db0942422b3bdd5",
+        "citation": "speechocean762: An Open-Source Non-Native English Speech Corpus for Pronunciation Assessment. Interspeech 2021."
+      }
+    ],
+    "seed": 42,
+    "split": {
+      "test": "corpus official test split, untouched during training",
+      "val": "25 speakers held out of the official train split",
+      "trainSpeakers": 100,
+      "valSpeakers": 25,
+      "testSpeakers": 125
+    },
+    "filters": {
+      "adultsOnly": false
+    },
+    "utteranceFeatures": {
+      "mode": "invariant",
+      "dropped": [],
+      "keys": [
+        "coverage",
+        "wpm",
+        "pauseMax",
+        "pauseMean",
+        "pauseRatio",
+        "wordDurMean",
+        "wordDurStd",
+        "wordDurCv",
+        "leadSil",
+        "tailSil",
+        "alignOk",
+        "gopMean",
+        "gopStd",
+        "gopMin",
+        "gopP10",
+        "gopP25",
+        "marginMean",
+        "marginP10",
+        "fracLowGop"
+      ]
+    },
+    "wordFeatures": [
+      "gopMean",
+      "gopMin",
+      "gopStd",
+      "marginMean",
+      "marginMin",
+      "nFrames",
+      "nChars",
+      "dur",
+      "charPerSec",
+      "blankRatio",
+      "logNFrames"
+    ],
+    "toolchain": {
+      "python": "3.12.14",
+      "lightgbm": "4.7.0",
+      "numpy": "2.5.2"
+    }
+  }
+}

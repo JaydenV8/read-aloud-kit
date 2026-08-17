@@ -19,13 +19,18 @@
     "analyze": "tsx packages/cli/src/index.ts",
     "corpus:download": "python3 training/download_corpus.py",
     "corpus:prepare": "python3 training/prepare.py",
-    "features:extract": "tsx training/extract_features.ts"
+    "features:extract": "tsx training/extract_features.ts",
+    "runtime:verify": "tsx training/verify_runtime.ts",
+    "heads:train": "training/.venv/bin/python training/train.py",
+    "heads:export": "training/.venv/bin/python training/export_onnx.py",
+    "heads:eval": "training/.venv/bin/python training/eval.py"
   },
   "dependencies": {
     "@readaloudkit/audio": "workspace:*",
     "@readaloudkit/core": "workspace:*",
     "@readaloudkit/features": "workspace:*",
-    "@readaloudkit/gop": "workspace:*"
+    "@readaloudkit/gop": "workspace:*",
+    "@readaloudkit/scoring": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",
@@ -37,6 +42,8 @@
     "vitest": "^3.2.7"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["onnxruntime-node"]
+    "onlyBuiltDependencies": [
+      "onnxruntime-node"
+    ]
   }
 }

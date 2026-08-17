@@ -57,6 +57,13 @@ Limits: 20 MB, 0.2–120 s, reference text up to 5000 characters. Audio is not w
 | `startMs` / `endMs` | from forced alignment; `null` for words with no reference position |
 | `confidence` | `sigmoid(marginMean)` in 0–1. 0.5 means the aligned character only ties with its strongest competitor. Not a pronunciation score |
 | `gop` | the 11 per-word acoustic features the scoring heads consume |
+| `level` | `good` / `average` / `bad` from a scoring backend, `null` without one |
+| `needsAttention` | whether the same head thinks this word is worth pointing at |
+
+`level` and `needsAttention` come off one threshold, so a word is never shown as
+`bad` while the flag says it is fine. **Read `needsAttention`, not `level`**: the
+flag runs precision 0.42 on held-out data, while telling `average` from `bad`
+runs about 0.27. Both are hints. `MODEL_CARD.md` has the numbers.
 
 #### `content`
 
@@ -78,9 +85,14 @@ omissions the acoustics contradict. `score` is whichever mode is active
 
 #### `scores`
 
-`content` is always present because it comes from a rule. `pronunciation`,
-`fluency` and `overall` are `null` until a scoring backend is installed;
-`backend` names the one in use.
+`content` is always present because it comes from a rule, and is on 0–5.
+`pronunciation`, `fluency` and `overall` come from the scoring heads on a 10–90
+range and are `null` until those are installed; `backend` names the one in use
+(`none` or `community`).
+
+The 10–90 range is a linear rescaling of a 0–10 corpus score, chosen because it
+is the range readers expect. It is **not** an official examination score and is
+calibrated against nothing. See `MODEL_CARD.md`.
 
 ### Errors
 

@@ -4,8 +4,9 @@ dist
 *.log
 .vite
 .turbo
-models/*.onnx
-models/*.ort
+models/**/*.onnx
+models/**/*.ort
+models/scoring/
 .env
 .env.*
 coverage

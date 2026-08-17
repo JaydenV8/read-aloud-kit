@@ -2,13 +2,16 @@
   "name": "@readaloudkit/scoring",
   "version": "0.1.0",
   "type": "module",
+  "dependencies": {
+    "@readaloudkit/features": "workspace:*",
+    "@readaloudkit/gop": "workspace:*",
+    "@readaloudkit/types": "workspace:*",
+    "onnxruntime-node": "^1.22.0"
+  },
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
-  },
-  "dependencies": {
-    "@readaloudkit/types": "workspace:*"
   }
 }

@@ -20,6 +20,9 @@ importers:
       '@readaloudkit/gop':
         specifier: workspace:*
         version: link:packages/gop
+      '@readaloudkit/scoring':
+        specifier: workspace:*
+        version: link:packages/scoring
     devDependencies:
       '@types/node':
         specifier: ^22.20.1
@@ -153,9 +156,18 @@ importers:
 
   packages/scoring:
     dependencies:
+      '@readaloudkit/features':
+        specifier: workspace:*
+        version: link:../features
+      '@readaloudkit/gop':
+        specifier: workspace:*
+        version: link:../gop
       '@readaloudkit/types':
         specifier: workspace:*
         version: link:../types
+      onnxruntime-node:
+        specifier: ^1.22.0
+        version: 1.27.0
 
   packages/sdk:
     dependencies:

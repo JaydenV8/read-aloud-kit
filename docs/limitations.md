@@ -20,11 +20,20 @@ independent per-word pronunciation labels. A word pronounced badly enough could
 in principle cross it and be reported as unread. Pass `acousticOmissions: false`
 to report only what the transcript comparison found.
 
+### Word bands
+
+`needsAttention` runs precision 0.42 and recall 0.56 on held-out data: about two
+in five flags are real, and about half the real problems get flagged. Treat it as
+"worth listening to again", never as "you said this wrong". Separating `average`
+from `bad` is weaker still, near 0.27 precision for both.
+
 ### Pronunciation / fluency
 
-This tree does not ship pronunciation or fluency scoring heads, so those stay
-`null`. Even with a backend installed, those numbers are not Pearson's official
-scores.
+With the community heads installed these come from models trained on
+speechocean762 and rescaled to 10–90. They correlate 0.65–0.73 with expert
+scores on that corpus's test split. They are **not** Pearson's scores, the 10–90
+mapping is calibrated against nothing, and no evaluation has been run at Read
+Aloud prompt length. `MODEL_CARD.md` has the full picture.
 
 ### Prosody
 

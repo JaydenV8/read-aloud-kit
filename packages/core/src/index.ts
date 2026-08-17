@@ -12,7 +12,7 @@ import { acousticFeatures, pausesFromWords, prosodyFromAlignment } from '@readal
 import { wordConfidence, wordIsOmission, wordsFromPath } from '@readaloudkit/gop'
 import { acousticReady, getAcousticModel } from '@readaloudkit/inference'
 import { displayPauses } from '@readaloudkit/prosody'
-import { resolveScoringBackend } from '@readaloudkit/scoring'
+import { loadScoringBackend } from '@readaloudkit/scoring'
 import { buildTips } from '@readaloudkit/tips'
 import {
   PACKAGE_VERSION,
@@ -51,15 +51,23 @@ const MIN_DURATION_MS = 200
 const MAX_DURATION_MS = 120_000
 
 export class ReadAloudAnalyzer {
-  constructor(private readonly scoring: ScoringBackend = resolveScoringBackend()) {}
+  private readonly scoring: Promise<ScoringBackend>
+
+  constructor(scoring?: ScoringBackend) {
+    this.scoring = scoring ? Promise.resolve(scoring) : loadScoringBackend()
+  }
 
   ready(): boolean {
     return acousticReady()
   }
 
-  /** Name of the installed scoring backend, `none` when nothing is wired up. */
-  get scoringBackend(): string {
-    return this.scoring.name
+  /**
+   * The installed scoring backend: its name, and which weights it loaded.
+   * `none` with a null version when nothing is wired up.
+   */
+  async scoringBackend(): Promise<{ backend: string; version: string | null }> {
+    const s = await this.scoring
+    return { backend: s.name, version: s.version ?? null }
   }
 
   async analyze(input: AnalyzeInput): Promise<ReadAloudAnalysis> {
@@ -129,6 +137,8 @@ export class ReadAloudAnalyzer {
         startMs: gop ? Math.round(gop.t0 * 1000) : null,
         endMs: gop ? Math.round(gop.t1 * 1000) : null,
         gop,
+        level: null,
+        needsAttention: null,
       }
     })
 
@@ -207,7 +217,8 @@ export class ReadAloudAnalyzer {
       })
     }
 
-    const backendResult = await this.scoring.score({
+    const backend = await this.scoring
+    const backendResult = await backend.score({
       durationMs: pcm.durationMs,
       words,
       gopWords,
@@ -217,8 +228,24 @@ export class ReadAloudAnalyzer {
       content,
     })
 
+    // Scored words line up with gopWords; insertions carry no alignment and so
+    // no band. A word that was not spoken does not get one either: the aligner
+    // still placed it, so the head still returns a band, but grading the
+    // pronunciation of something nobody said says nothing.
+    if (backendResult?.words?.length) {
+      let i = 0
+      for (const w of words) {
+        if (!w.gop) continue
+        const scored = backendResult.words[i++]
+        if (!scored) break
+        if (w.status === 'omission') continue
+        w.level = scored.level
+        w.needsAttention = scored.needsAttention
+      }
+    }
+
     const scores: Scores = {
-      backend: backendResult?.backend ?? this.scoring.name,
+      backend: backendResult?.backend ?? backend.name,
       content: content.score,
       pronunciation: backendResult?.pronunciation ?? null,
       fluency: backendResult?.fluency ?? null,

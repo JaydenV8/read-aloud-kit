@@ -41,14 +41,14 @@ export const app = new Hono()
 
 app.use('*', cors())
 
-app.get('/health', (c) => {
+app.get('/health', async (c) => {
   const ready = analyzer.ready()
   return c.json({
     ok: true,
     ready,
     package: PACKAGE_VERSION,
     acoustic: ready ? 'community' : 'missing',
-    scoring: analyzer.scoringBackend,
+    scoring: await analyzer.scoringBackend(),
   })
 })
 

@@ -87,6 +87,8 @@ export type WordStatus = 'correct' | 'omission' | 'substitution' | 'insertion' |
  */
 export type StatusEvidence = 'edit' | 'acoustic'
 
+export type WordLevel = 'good' | 'average' | 'bad'
+
 export type AnalysisWord = {
   reference: string | null
   hypothesis: string | null
@@ -96,6 +98,18 @@ export type AnalysisWord = {
   startMs: number | null
   endMs: number | null
   gop: GopWord | null
+  /**
+   * Pronunciation band from a scoring backend, `null` without one. Reported for
+   * parity with three-colour displays, but the three-way call is imprecise:
+   * check the model card before rendering `average` and `bad` differently.
+   */
+  level: WordLevel | null
+  /**
+   * The same head collapsed to one decision at a calibrated threshold. This is
+   * the signal a display should highlight — it is roughly twice as precise as
+   * telling `average` from `bad`. Still a hint, not a verdict.
+   */
+  needsAttention: boolean | null
 }
 
 export type AnalysisEdit = {
@@ -133,12 +147,19 @@ export type Scores = {
   overall: number | null
 }
 
+export type ScoredWord = {
+  level: WordLevel
+  needsAttention: boolean
+}
+
 export type ScoringResult = {
   backend: string
   pronunciation?: number
   fluency?: number
   overall?: number
   content?: number
+  /** One entry per `ScoringInput.gopWords`, in the same order. */
+  words?: ScoredWord[]
 }
 
 export type ScoringInput = {
@@ -153,6 +174,12 @@ export type ScoringInput = {
 
 export interface ScoringBackend {
   readonly name: string
+  /**
+   * Which weights are loaded, e.g. `0.4-community`. The backend name alone does
+   * not identify them — successive releases share it — so a bug report has no
+   * way to say which numbers it saw unless this is reported too.
+   */
+  readonly version?: string
   score(input: ScoringInput): Promise<ScoringResult | null>
 }
 

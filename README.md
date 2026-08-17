@@ -77,9 +77,12 @@ forced alignment, which has to park the word on silence somewhere. See
 |---|---|
 | Acoustic CTC | Facebook wav2vec2-base-960h, fetched by `pnpm models:download` |
 | Word-level analysis, content, prosody, pauses, tips | included, no extra model needed |
-| Pronunciation / fluency heads | not yet — `scores.pronunciation` and friends are `null` |
+| Pronunciation / fluency heads | community heads trained on speechocean762, 1.3 MB |
 
-A scoring backend plugs in through the `ScoringBackend` interface; see `docs/models.md`.
+The scoring heads are optional: without them the analysis still runs and the
+model-derived fields are `null`. Read `MODEL_CARD.md` before displaying any of
+their output — the word flag is a hint at 0.42 precision, and the 10–90 range is
+a presentation choice, not an examination score.
 
 ## Tooling
 
