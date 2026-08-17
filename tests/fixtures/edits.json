@@ -1,0 +1,267 @@
+{
+  "perfect": {
+    "n_omission": 0,
+    "n_replacement": 0,
+    "n_insertion": 0,
+    "n_repeat": 0,
+    "n_ref": 3,
+    "content": 5.0,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "the"
+      },
+      {
+        "op": "equal",
+        "ref": "cat",
+        "hyp": "cat"
+      },
+      {
+        "op": "equal",
+        "ref": "sat",
+        "hyp": "sat"
+      }
+    ]
+  },
+  "omit_replace_insert_raw": {
+    "n_omission": 1,
+    "n_replacement": 1,
+    "n_insertion": 1,
+    "n_repeat": 0,
+    "n_ref": 6,
+    "content": 2.5,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "the"
+      },
+      {
+        "op": "replace",
+        "ref": "cat",
+        "hyp": "dog"
+      },
+      {
+        "op": "equal",
+        "ref": "sat",
+        "hyp": "sat"
+      },
+      {
+        "op": "omit",
+        "ref": "on",
+        "hyp": null
+      },
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "the"
+      },
+      {
+        "op": "equal",
+        "ref": "mat",
+        "hyp": "mat"
+      },
+      {
+        "op": "insert",
+        "ref": null,
+        "hyp": "here"
+      }
+    ]
+  },
+  "repeat": {
+    "n_omission": 0,
+    "n_replacement": 0,
+    "n_insertion": 0,
+    "n_repeat": 1,
+    "n_ref": 2,
+    "content": 5.0,
+    "ops": [
+      {
+        "op": "repeat",
+        "ref": null,
+        "hyp": "go"
+      },
+      {
+        "op": "equal",
+        "ref": "go",
+        "hyp": "go"
+      },
+      {
+        "op": "equal",
+        "ref": "home",
+        "hyp": "home"
+      }
+    ]
+  },
+  "long_tail": {
+    "n_omission": 4,
+    "n_replacement": 0,
+    "n_insertion": 0,
+    "n_repeat": 0,
+    "n_ref": 7,
+    "content": 2.142857142857143,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "one",
+        "hyp": "one"
+      },
+      {
+        "op": "equal",
+        "ref": "two",
+        "hyp": "two"
+      },
+      {
+        "op": "equal",
+        "ref": "three",
+        "hyp": "three"
+      },
+      {
+        "op": "omit",
+        "ref": "four",
+        "hyp": null
+      },
+      {
+        "op": "omit",
+        "ref": "five",
+        "hyp": null
+      },
+      {
+        "op": "omit",
+        "ref": "six",
+        "hyp": null
+      },
+      {
+        "op": "omit",
+        "ref": "seven",
+        "hyp": null
+      }
+    ]
+  },
+  "short_mid_omit": {
+    "n_omission": 0,
+    "n_replacement": 0,
+    "n_insertion": 0,
+    "n_repeat": 0,
+    "n_ref": 6,
+    "content": 5.0,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "the"
+      },
+      {
+        "op": "equal",
+        "ref": "cat",
+        "hyp": "cat"
+      },
+      {
+        "op": "equal",
+        "ref": "sat",
+        "hyp": "sat"
+      },
+      {
+        "op": "equal",
+        "ref": "on",
+        "hyp": "on"
+      },
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "the"
+      },
+      {
+        "op": "equal",
+        "ref": "mat",
+        "hyp": "mat"
+      }
+    ]
+  },
+  "near_phone": {
+    "n_omission": 0,
+    "n_replacement": 0,
+    "n_insertion": 0,
+    "n_repeat": 0,
+    "n_ref": 4,
+    "content": 5.0,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "a"
+      },
+      {
+        "op": "equal",
+        "ref": "effect",
+        "hyp": "affect"
+      },
+      {
+        "op": "equal",
+        "ref": "was",
+        "hyp": "was"
+      },
+      {
+        "op": "equal",
+        "ref": "clear",
+        "hyp": "clear"
+      }
+    ]
+  },
+  "cat_dog": {
+    "n_omission": 0,
+    "n_replacement": 1,
+    "n_insertion": 0,
+    "n_repeat": 0,
+    "n_ref": 3,
+    "content": 3.3333333333333335,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "the",
+        "hyp": "the"
+      },
+      {
+        "op": "replace",
+        "ref": "cat",
+        "hyp": "dog"
+      },
+      {
+        "op": "equal",
+        "ref": "sat",
+        "hyp": "sat"
+      }
+    ]
+  },
+  "insert_run": {
+    "n_omission": 0,
+    "n_replacement": 0,
+    "n_insertion": 2,
+    "n_repeat": 0,
+    "n_ref": 2,
+    "content": 0.0,
+    "ops": [
+      {
+        "op": "equal",
+        "ref": "go",
+        "hyp": "go"
+      },
+      {
+        "op": "insert",
+        "ref": null,
+        "hyp": "really"
+      },
+      {
+        "op": "insert",
+        "ref": null,
+        "hyp": "fast"
+      },
+      {
+        "op": "equal",
+        "ref": "home",
+        "hyp": "home"
+      }
+    ]
+  }
+}
