@@ -5,8 +5,18 @@ Base URL: `http://127.0.0.1:3000`
 ## `GET /health`
 
 ```json
-{ "ok": true, "ready": true, "package": "0.1.0", "acoustic": "community", "scoring": "none" }
+{
+  "ok": true,
+  "ready": true,
+  "package": "0.1.0",
+  "acoustic": "community",
+  "scoring": { "backend": "community", "version": "0.5-community" }
+}
 ```
+
+`scoring.version` names the weights that are loaded. The backend name alone does
+not — every generation answers to `community` — so quote the version in a bug
+report. With no heads installed it reads `{ "backend": "none", "version": null }`.
 
 ## `POST /v1/read-aloud/analyze`
 
@@ -42,10 +52,13 @@ Limits: 20 MB, 0.2–120 s, reference text up to 5000 characters. Audio is not w
                   "where": "mid", "afterWordIndex": 7 } ],
   "tips":     [ "Barely spoken: many. Every omitted word costs a content point." ],
 
-  "scores": { "backend": "none", "content": 3.33,
-              "pronunciation": null, "fluency": null, "overall": null }
+  "scores": { "backend": "community", "content": 3.33,
+              "pronunciation": 71.1, "fluency": 78.7, "overall": 70.8 }
 }
 ```
+
+With no scoring backend installed, `backend` is `none` and the three
+model-derived scores are `null`; every other field is returned either way.
 
 #### `words[]`
 
@@ -56,7 +69,7 @@ Limits: 20 MB, 0.2–120 s, reference text up to 5000 characters. Audio is not w
 | `statusEvidence` | `edit` if the transcript comparison decided it, `acoustic` if the aligned span had no speech in it |
 | `startMs` / `endMs` | from forced alignment; `null` for words with no reference position |
 | `confidence` | `sigmoid(marginMean)` in 0–1. 0.5 means the aligned character only ties with its strongest competitor. Not a pronunciation score |
-| `gop` | the 11 per-word acoustic features the scoring heads consume |
+| `gop` | per-word acoustic evidence: `tok`, `t0`, `t1`, the per-character series in `chars`, and the 36 numeric features named by `WORD_FEATURE_KEYS_V2` that the heads consume |
 | `level` | `good` / `average` / `bad` from a scoring backend, `null` without one |
 | `needsAttention` | whether the same head thinks this word is worth pointing at |
 
@@ -87,8 +100,9 @@ omissions the acoustics contradict. `score` is whichever mode is active
 
 `content` is always present because it comes from a rule, and is on 0–5.
 `pronunciation`, `fluency` and `overall` come from the scoring heads on a 10–90
-range and are `null` until those are installed; `backend` names the one in use
-(`none` or `community`).
+range; `backend` names the one in use (`none` or `community`). The heads ship in
+`releases/`, so these are populated from a clone — they go `null` only if you
+remove them.
 
 The 10–90 range is a linear rescaling of a 0–10 corpus score, chosen because it
 is the range readers expect. It is **not** an official examination score and is
@@ -107,3 +121,14 @@ Request parameters are validated with zod before any audio is decoded. A rejecte
 ```
 
 `503` means the community acoustic model is not installed — run `pnpm models:download`. That check runs before the body is read, so an unconfigured server rejects uploads immediately.
+
+Anything that goes wrong inside returns a fixed body and logs the detail server-side:
+
+```json
+{ "ok": false, "error": "analyze failed", "code": "internal" }
+```
+
+Only errors raised deliberately with a status — bad audio, a missing field, a
+file over the limit — carry their own message back to the caller. Library
+failures do not: onnxruntime, for one, quotes the absolute path of the model
+file when a load fails, and that is not the caller's business.

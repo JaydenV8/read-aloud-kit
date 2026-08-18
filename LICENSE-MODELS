@@ -1,0 +1,45 @@
+ReadAloudKit community scoring heads
+====================================
+
+Applies to everything under `releases/` — the ONNX graphs and the `scoring.json`
+manifests beside them. The source in this repository is Apache-2.0 and is
+covered by `LICENSE` instead; the third-party acoustic checkpoint is covered by
+neither, see `docs/models.md`.
+
+Licence
+-------
+
+Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+    https://creativecommons.org/licenses/by/4.0/
+
+You may use, modify, redistribute and build on these weights, including
+commercially, provided you give attribution.
+
+Why this licence
+----------------
+
+The heads are a derivative of speechocean762, which is itself CC BY 4.0. CC BY
+carries no ShareAlike condition, so a different licence was permitted here — but
+matching the corpus keeps one rule over the whole chain instead of two that have
+to be reconciled, and the attribution obligation is inherited regardless.
+
+Attribution
+-----------
+
+Credit both the corpus and this project:
+
+    Scoring heads from ReadAloudKit (https://github.com/JaydenV8/read-aloud-kit),
+    CC BY 4.0, trained on speechocean762:
+
+    speechocean762: An Open-Source Non-Native English Speech Corpus for
+    Pronunciation Assessment. Interspeech 2021.
+    https://www.openslr.org/101/
+
+What these weights are not
+--------------------------
+
+Not an examination score, and not affiliated with or endorsed by Pearson. The
+10-90 range they report is a presentation choice calibrated against nothing.
+`MODEL_CARD.md` states what they were measured on and where they fail; read it
+before putting their output in front of a learner.

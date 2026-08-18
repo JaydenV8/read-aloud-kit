@@ -26,21 +26,50 @@ saying nothing.
 
 `scores.content` is always present: it comes from counting edits, not a model.
 
-Install by placing the exported files in `models/scoring/` next to
-`scoring.json`, or point `READALOUDKIT_SCORING` at another directory. Without
-them the analyzer falls back to the noop backend and the model-derived fields
-stay `null`.
+## Where they load from
+
+Checked in, so a clone scores without a download. Resolution order:
+
+1. `READALOUDKIT_SCORING`, if set
+2. `models/scoring/`, the override slot for a local export — gitignored
+3. the directory named in `releases/CURRENT`
+
+`GET /health` reports which of these won, as `scoring: { backend, version }`.
+Remove them all and the analyzer falls back to the noop backend: the analysis
+still runs and the model-derived fields are `null`.
+
+`releases/` keeps every generation, not just the current one, so the comparison
+in `MODEL_CARD.md` can be re-run rather than taken on trust:
+
+```bash
+training/.venv/bin/python training/eval.py --onnx releases/0.4-community --split test
+training/.venv/bin/python training/eval.py --onnx releases/0.5-community --split test
+```
 
 A different backend plugs in through the `ScoringBackend` interface in
 `@readaloudkit/types`. It receives the word list, the per-word GOP features, the
-21 utterance prosody features and the content breakdown.
+utterance prosody features and the content breakdown.
 
 ## Feature contracts
 
-A head is trained against a fixed feature order:
+A head is trained against a fixed feature order, and the release carries the
+order it was fitted on. The runtime assembles its input from that shipped key
+list — `manifest.wordFeatureKeys` and `manifest.utteranceFeatureKeys` — rather
+than from a version number, so an old release keeps working after the packages
+grow new features. Loading a head whose ONNX input width disagrees with its
+manifest is refused rather than served.
 
-- `WORD_FEATURE_KEYS` (`@readaloudkit/gop`) — 11 per-word acoustic features
+`0.5-community` is fitted on:
+
+- `WORD_FEATURE_KEYS_V2` (`@readaloudkit/gop`) — 36 per-word features. Eleven of
+  them are the v1 summary; the rest keep the shape of the per-character posterior
+  and duration series, plus one word of context either side
 - `UTTERANCE_FEATURE_KEYS` (`@readaloudkit/features`) — 21 prosody features
-- `UTTERANCE_GOP_KEYS` (`@readaloudkit/gop`) — 9 aggregates appended after those
+- `UTTERANCE_GOP_KEYS_V2` (`@readaloudkit/gop`) — 24 aggregates appended after
+  those, giving 45; the shipped heads read 32 of them
+
+`0.4-community` is fitted on the v1 lists — `WORD_FEATURE_KEYS` (11) and
+`UTTERANCE_GOP_KEYS` (9), 19 of 30 utterance features — and still loads, because
+the v2 lists are supersets whose shared keys carry identical values.
 
 Feature extraction for training runs through these same packages, so there is no second implementation that can drift from the one used at serving time.

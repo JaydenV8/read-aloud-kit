@@ -1,6 +1,9 @@
 # Models
 
-Large weights are **not** stored in git.
+The acoustic model lives here and is **not** stored in git — at 378 MB it is
+fetched. The scoring heads are a different matter: they are about a megabyte and
+are checked into `releases/`, so they need no download. `models/scoring/` is
+their override slot, which is why it is gitignored. See `docs/models.md`.
 
 | File | Class | Role |
 |---|---|---|
@@ -11,9 +14,9 @@ Large weights are **not** stored in git.
 pnpm models:download
 ```
 
-Resolution order: an already-installed valid copy → a local export (`READALOUDKIT_MODEL_SRC`, `/tmp/rak-models/`) → the GitHub release asset (~361 MB). The download is checked against a pinned SHA-256 and a mismatched file is deleted rather than used. Override the source with `READALOUDKIT_MODEL_URL`.
+Resolution order: an already-installed valid copy → a local export (`READALOUDKIT_MODEL_SRC`, `/tmp/rak-models/`) → the GitHub release asset (378 MB). The download is checked against a pinned SHA-256 and a mismatched file is deleted rather than used. Override the source with `READALOUDKIT_MODEL_URL`.
 
-No scoring heads ship yet, so `scores.pronunciation`, `scores.fluency` and `scores.overall` are `null`. `scores.content` comes from a rule and needs no model.
+Without this file nothing runs — it is the one forward pass everything downstream is derived from. `scores.content` is the exception: it comes from a rule and needs no model at all.
 
 ## Provenance and license
 

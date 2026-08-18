@@ -98,13 +98,13 @@ across an utterance, and six words leave little to distribute.
 
 | head | r | MAE | MAE if you just predicted the mean |
 |---|---|---|---|
-| accuracy → `scores.pronunciation` | 0.652 | 0.865 | 1.131 |
-| fluency → `scores.fluency` | 0.729 | 0.706 | 1.056 |
-| total → `scores.overall` | 0.684 | 0.827 | 1.182 |
+| accuracy → `scores.pronunciation` | 0.665 | 0.849 | 1.131 |
+| fluency → `scores.fluency` | 0.737 | 0.693 | 1.056 |
+| total → `scores.overall` | 0.687 | 0.825 | 1.182 |
 
 For context, GOPT (ICASSP 2022) reports 0.742 sentence-level PCC on this corpus
 with a transformer over per-phone GOP vectors. These heads are gradient-boosted
-trees over 19 utterance-level features and land below that, which is the
+trees over 32 utterance-level features and land below that, which is the
 expected trade for a 1.0 MB model that runs on CPU in Node.
 
 ## Scale
@@ -188,8 +188,20 @@ importing one measured on other data.
 audio through the whole Node path and checks it lands on the same answers, which
 is what stops training and serving from drifting apart.
 
+## Where these live
+
+Checked into `releases/`, weights included, and loaded from there without a
+download — `releases/CURRENT` names the generation in use. Every generation is
+kept rather than only the newest, so the comparison above can be re-run:
+
+```bash
+training/.venv/bin/python training/eval.py --onnx releases/0.4-community --split test
+training/.venv/bin/python training/eval.py --onnx releases/0.5-community --split test
+```
+
 ## License
 
-Code Apache-2.0. The training corpus is CC BY 4.0 and requires the attribution
-above; see `NOTICE`. The acoustic model is a third-party checkpoint under its own
-license; see `docs/models.md`.
+The weights are CC BY 4.0, matching the corpus they derive from — see
+`LICENSE-MODELS` for the attribution to reproduce, and `NOTICE` for the corpus
+citation. Code in this repository is Apache-2.0 (`LICENSE`). The acoustic model
+is a third-party checkpoint under its own license; see `docs/models.md`.

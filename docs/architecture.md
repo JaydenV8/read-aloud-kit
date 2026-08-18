@@ -52,7 +52,13 @@ rather than words the aligner placed — the aligner always places all of them.
 
 ## Feature contracts
 
-`WORD_FEATURE_KEYS` (`@readaloudkit/gop`) and `UTTERANCE_FEATURE_KEYS`
-(`@readaloudkit/features`) pin the order a scoring head is trained on. Training
-extracts features through these same packages, so there is no separate
-implementation to drift against at serving time.
+`WORD_FEATURE_KEYS_V2` and `UTTERANCE_GOP_KEYS_V2` (`@readaloudkit/gop`), with
+`UTTERANCE_FEATURE_KEYS` (`@readaloudkit/features`), pin the order a scoring head
+is trained on. The v1 lists they superseded are still exported, because a release
+fitted on those still loads. Training extracts features through these same
+packages, so there is no separate implementation to drift against at serving
+time.
+
+A release records the key list it was fitted on and the runtime assembles its
+input from that rather than from a version number, which is why one code path
+serves both `0.4-community` and `0.5-community`. See `docs/models.md`.

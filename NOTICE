@@ -16,9 +16,10 @@ International licence (CC BY 4.0).
     https://www.openslr.org/101/
     https://creativecommons.org/licenses/by/4.0/
 
-The corpus itself is not redistributed here. The heads are a derivative of it;
-CC BY carries no ShareAlike condition, so they are licensed separately, but the
-attribution above travels with them.
+The corpus itself is not redistributed here. The heads are a derivative of it
+and are checked in under releases/, licensed CC BY 4.0 as well — see
+LICENSE-MODELS, which also gives the wording to use when crediting them. The
+source in this repository is Apache-2.0 and is covered by LICENSE instead.
 
 --------------------------------------------------------------------------------
 Acoustic model

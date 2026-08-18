@@ -29,8 +29,8 @@ from `bad` is weaker, near 0.28 precision for `average`.
 
 ### Pronunciation / fluency
 
-With the community heads installed these come from models trained on
-speechocean762 and rescaled to 10–90. They correlate 0.65–0.73 with expert
+These come from the community heads in `releases/`, trained on speechocean762
+and rescaled to 10–90. They correlate 0.65–0.73 with expert
 scores on that corpus's test split. They are **not** Pearson's scores, the 10–90
 mapping is calibrated against nothing, and no evaluation has been run at Read
 Aloud prompt length. `MODEL_CARD.md` has the full picture.
