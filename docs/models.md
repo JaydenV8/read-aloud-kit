@@ -8,7 +8,7 @@ It is an ASR model, not a pronunciation-assessment model. Everything downstream 
 
 ## Scoring heads
 
-The community heads are LightGBM models exported to ONNX, 1.3 MB for the four the
+The community heads are LightGBM models exported to ONNX, 1.0 MB for the four the
 runtime loads. They are trained on speechocean762 (CC BY 4.0) and nothing else —
 see `MODEL_CARD.md` for data, splits, held-out results and limitations, and
 `NOTICE` for the attribution that travels with them.

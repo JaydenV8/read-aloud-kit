@@ -1,3 +1,4 @@
+import { noCharSeries } from '@readaloudkit/gop'
 import { describe, expect, it } from 'vitest'
 import type { GopWord, ProsodyFeatures, ScoringInput } from '@readaloudkit/types'
 import { UTTERANCE_FEATURE_KEYS } from '@readaloudkit/features'
@@ -25,6 +26,7 @@ function gopWord(over: Partial<GopWord> = {}): GopWord {
     charPerSec: 13.3,
     blankRatio: 0.2,
     logNFrames: Math.log(13),
+    ...noCharSeries(),
     ...over,
   }
 }

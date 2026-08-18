@@ -1,5 +1,5 @@
 {
-  "version": "0.4-community",
+  "version": "0.5-community",
   "inputName": "input",
   "wordFeatureKeys": [
     "gopMean",
@@ -12,7 +12,32 @@
     "dur",
     "charPerSec",
     "blankRatio",
-    "logNFrames"
+    "logNFrames",
+    "charGopMin",
+    "charGopMax",
+    "charGopStd",
+    "charGopRange",
+    "charGopP25",
+    "worstCharPos",
+    "nWeakChars",
+    "fracWeakChars",
+    "headGop",
+    "tailGop",
+    "headTailDelta",
+    "charDurMax",
+    "charDurMin",
+    "charDurStd",
+    "charDurCv",
+    "longestCharPos",
+    "durFrontBackRatio",
+    "charMarginMin",
+    "charMarginP25",
+    "gapBefore",
+    "gapAfter",
+    "prevGopMean",
+    "nextGopMean",
+    "relDur",
+    "relCharPerSec"
   ],
   "utteranceFeatureKeys": [
     "coverage",
@@ -33,7 +58,20 @@
     "gopP25",
     "marginMean",
     "marginP10",
-    "fracLowGop"
+    "fracLowGop",
+    "charGopMinMean",
+    "charGopMinP10",
+    "charGopStdMean",
+    "fracWeakCharsMean",
+    "fracWordsWithWeakChar",
+    "headTailDeltaMean",
+    "headTailDeltaStd",
+    "charDurCvMean",
+    "charDurCvStd",
+    "worstCharPosMean",
+    "longestCharPosMean",
+    "relDurStd",
+    "gapBeforeMean"
   ],
   "wordLevels": [
     "good",
@@ -54,19 +92,19 @@
     "word_level": {
       "file": "word_level.onnx",
       "kind": "classifier",
-      "nFeatures": 11,
-      "bytes": 288472,
+      "nFeatures": 36,
+      "bytes": 330256,
       "shipped": true,
       "parity": {
-        "maxAbs": 8.940696716308594e-08,
+        "maxAbs": 1.1920928955078125e-07,
         "tolerance": 0.0002
       }
     },
     "word_stress": {
       "file": "word_stress.onnx",
       "kind": "classifier",
-      "nFeatures": 11,
-      "bytes": 49872,
+      "nFeatures": 36,
+      "bytes": 45414,
       "shipped": false,
       "parity": {
         "maxAbs": 5.960464477539063e-08,
@@ -76,8 +114,8 @@
     "utterance_accuracy": {
       "file": "utterance_accuracy.onnx",
       "kind": "regressor",
-      "nFeatures": 19,
-      "bytes": 221275,
+      "nFeatures": 32,
+      "bytes": 248024,
       "shipped": true,
       "parity": {
         "maxAbs": 1.9073486328125e-06,
@@ -87,8 +125,8 @@
     "utterance_fluency": {
       "file": "utterance_fluency.onnx",
       "kind": "regressor",
-      "nFeatures": 19,
-      "bytes": 634076,
+      "nFeatures": 32,
+      "bytes": 216817,
       "shipped": true,
       "parity": {
         "maxAbs": 2.86102294921875e-06,
@@ -98,8 +136,8 @@
     "utterance_prosodic": {
       "file": "utterance_prosodic.onnx",
       "kind": "regressor",
-      "nFeatures": 19,
-      "bytes": 383405,
+      "nFeatures": 32,
+      "bytes": 227962,
       "shipped": false,
       "parity": {
         "maxAbs": 1.9073486328125e-06,
@@ -109,8 +147,8 @@
     "utterance_total": {
       "file": "utterance_total.onnx",
       "kind": "regressor",
-      "nFeatures": 19,
-      "bytes": 187840,
+      "nFeatures": 32,
+      "bytes": 277001,
       "shipped": true,
       "parity": {
         "maxAbs": 1.430511474609375e-06,
@@ -127,103 +165,103 @@
   "metrics": {
     "word_level": {
       "n": 15967,
-      "accuracy": 0.7261,
-      "macro_f1": 0.4753,
+      "accuracy": 0.7631,
+      "macro_f1": 0.5073,
       "per_class": {
         "good": {
-          "precision": 0.9636,
-          "recall": 0.7541,
-          "f1": 0.8461,
+          "precision": 0.9613,
+          "recall": 0.7953,
+          "f1": 0.8705,
           "support": 14062
         },
         "average": {
-          "precision": 0.1731,
-          "recall": 0.4366,
-          "f1": 0.2479,
+          "precision": 0.1882,
+          "recall": 0.4376,
+          "f1": 0.2633,
           "support": 1010
         },
         "bad": {
-          "precision": 0.2274,
-          "recall": 0.6134,
-          "f1": 0.3318,
+          "precision": 0.2816,
+          "recall": 0.6246,
+          "f1": 0.3882,
           "support": 895
         }
       },
       "confusion": [
         [
-          10604,
-          1894,
-          1564
+          11184,
+          1727,
+          1151
         ],
         [
-          268,
-          441,
-          301
+          293,
+          442,
+          275
         ],
         [
-          133,
-          213,
-          549
+          157,
+          179,
+          559
         ]
       ],
       "majority_class_accuracy": 0.8807
     },
     "word_stress": {
       "n": 15967,
-      "accuracy": 0.9102,
-      "macro_f1": 0.5168,
+      "accuracy": 0.945,
+      "macro_f1": 0.5323,
       "per_class": {
         "correct": {
-          "precision": 0.9956,
-          "recall": 0.9135,
-          "f1": 0.9528,
+          "precision": 0.9946,
+          "recall": 0.9497,
+          "f1": 0.9716,
           "support": 15840
         },
         "wrong": {
-          "precision": 0.044,
-          "recall": 0.4961,
-          "f1": 0.0808,
+          "precision": 0.0535,
+          "recall": 0.3543,
+          "f1": 0.093,
           "support": 127
         }
       },
       "confusion": [
         [
-          14470,
-          1370
+          15044,
+          796
         ],
         [
-          64,
-          63
+          82,
+          45
         ]
       ],
       "majority_class_accuracy": 0.992
     },
     "utterance_accuracy": {
       "n": 2500,
-      "pearson": 0.6519,
-      "mae": 0.8648,
-      "rmse": 1.1732,
+      "pearson": 0.665,
+      "mae": 0.8489,
+      "rmse": 1.1533,
       "predict_mean_mae": 1.131
     },
     "utterance_fluency": {
       "n": 2500,
-      "pearson": 0.7292,
-      "mae": 0.7063,
-      "rmse": 0.9756,
+      "pearson": 0.7374,
+      "mae": 0.693,
+      "rmse": 0.9625,
       "predict_mean_mae": 1.0559
     },
     "utterance_prosodic": {
       "n": 2500,
-      "pearson": 0.7155,
-      "mae": 0.7307,
-      "rmse": 1.0013,
+      "pearson": 0.7197,
+      "mae": 0.7329,
+      "rmse": 0.9955,
       "predict_mean_mae": 1.1233
     },
     "utterance_total": {
       "n": 2500,
-      "pearson": 0.6836,
-      "mae": 0.8266,
-      "rmse": 1.132,
+      "pearson": 0.6868,
+      "mae": 0.8247,
+      "rmse": 1.128,
       "predict_mean_mae": 1.1821
     }
   },
@@ -249,6 +287,8 @@
     "filters": {
       "adultsOnly": false
     },
+    "featureVersion": 2,
+    "weakCharGop": -4.3,
     "utteranceFeatures": {
       "mode": "invariant",
       "dropped": [],
@@ -271,7 +311,20 @@
         "gopP25",
         "marginMean",
         "marginP10",
-        "fracLowGop"
+        "fracLowGop",
+        "charGopMinMean",
+        "charGopMinP10",
+        "charGopStdMean",
+        "fracWeakCharsMean",
+        "fracWordsWithWeakChar",
+        "headTailDeltaMean",
+        "headTailDeltaStd",
+        "charDurCvMean",
+        "charDurCvStd",
+        "worstCharPosMean",
+        "longestCharPosMean",
+        "relDurStd",
+        "gapBeforeMean"
       ]
     },
     "wordFeatures": [
@@ -285,7 +338,32 @@
       "dur",
       "charPerSec",
       "blankRatio",
-      "logNFrames"
+      "logNFrames",
+      "charGopMin",
+      "charGopMax",
+      "charGopStd",
+      "charGopRange",
+      "charGopP25",
+      "worstCharPos",
+      "nWeakChars",
+      "fracWeakChars",
+      "headGop",
+      "tailGop",
+      "headTailDelta",
+      "charDurMax",
+      "charDurMin",
+      "charDurStd",
+      "charDurCv",
+      "longestCharPos",
+      "durFrontBackRatio",
+      "charMarginMin",
+      "charMarginP25",
+      "gapBefore",
+      "gapAfter",
+      "prevGopMean",
+      "nextGopMean",
+      "relDur",
+      "relCharPerSec"
     ],
     "toolchain": {
       "python": "3.12.14",

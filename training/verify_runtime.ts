@@ -73,6 +73,8 @@ async function main() {
   let flaggedReal = 0
   let real = 0
   let mismatched = 0
+  let unbanded = 0
+  let banded = 0
 
   for (const row of rows) {
     const audio = new Uint8Array(readFileSync(resolve(CORPUS, row.audioPath)))
@@ -84,22 +86,31 @@ async function main() {
     }
     aligned.forEach((w, i) => {
       const truth = row.words[i]!.level
-      const got = String(w.level)
-      tally[truth] ??= {}
-      tally[truth][got] = (tally[truth][got] ?? 0) + 1
       n += 1
-      if (truth === got) agree += 1
       const isReal = truth !== 'good'
       if (isReal) real += 1
       if (w.needsAttention) {
         flagged += 1
         if (isReal) flaggedReal += 1
       }
+      // The runtime withholds a band from words it reads as unspoken. They are
+      // not head predictions, so they belong outside the confusion rather than
+      // silently in a column nobody prints.
+      if (w.level === null) {
+        unbanded += 1
+        return
+      }
+      const got = String(w.level)
+      tally[truth] ??= {}
+      tally[truth][got] = (tally[truth][got] ?? 0) + 1
+      banded += 1
+      if (truth === got) agree += 1
     })
   }
 
   console.log(`\n${n} words from ${rows.length} test utterances (${mismatched} skipped)`)
-  console.log(`level agreement with the corpus label: ${((100 * agree) / n).toFixed(1)}%`)
+  console.log(`${unbanded} left unbanded as omissions; agreement is over the remaining ${banded}`)
+  console.log(`level agreement with the corpus label: ${((100 * agree) / banded).toFixed(1)}%`)
   console.log('confusion (rows = corpus label, columns = predicted):')
   for (const t of LEVELS) {
     const row = LEVELS.map((g) => `${g}:${tally[t]?.[g] ?? 0}`).join('  ')

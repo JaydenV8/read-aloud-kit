@@ -46,8 +46,21 @@ STRESS_WRONG = 5.0
 # same features are dominated by prompt length instead, so a head that leaned
 # on them would not transfer. Trained without them by default; --utterance-
 # features all measures what that costs.
+# `gapBeforeMax` and `wordGopRange` belong here for the same reason one step
+# removed: both are extremes over the word count, so they drift upward simply
+# because a longer prompt offers more chances to hit one.
 LENGTH_SCALING = frozenset(
-    {"duration", "nRef", "nAligned", "spokenSec", "nPause", "pauseTotal", "nGopWords"}
+    {
+        "duration",
+        "nRef",
+        "nAligned",
+        "spokenSec",
+        "nPause",
+        "pauseTotal",
+        "nGopWords",
+        "gapBeforeMax",
+        "wordGopRange",
+    }
 )
 
 # Signal level, not speech quality. Every speaker here was recorded once, so
@@ -172,7 +185,7 @@ def classification_summary(y: np.ndarray, pred: np.ndarray, names: tuple[str, ..
     }
 
 
-def build_word_sets(rows: list[dict], val_speakers: set[str]):
+def build_word_sets(rows: list[dict], val_speakers: set[str], field: str = "features"):
     packs = {"train": [], "val": [], "test": []}
     for r in rows:
         bucket = "test" if r["split"] == "test" else ("val" if r["speakerId"] in val_speakers else "train")
@@ -181,7 +194,7 @@ def build_word_sets(rows: list[dict], val_speakers: set[str]):
     out = {}
     for name, words in packs.items():
         out[name] = {
-            "X": np.asarray([w["features"] for w in words], dtype=np.float32),
+            "X": np.asarray([w[field] for w in words], dtype=np.float32),
             "level": np.asarray([WORD_LEVEL_ID[w["level"]] for w in words], dtype=np.int32),
             "stress": np.asarray(
                 [1 if w["stress"] <= STRESS_WRONG else 0 for w in words], dtype=np.int32
@@ -190,7 +203,9 @@ def build_word_sets(rows: list[dict], val_speakers: set[str]):
     return out
 
 
-def build_utterance_sets(rows: list[dict], val_speakers: set[str], keep: list[int]):
+def build_utterance_sets(
+    rows: list[dict], val_speakers: set[str], keep: list[int], field: str = "features"
+):
     packs = {"train": [], "val": [], "test": []}
     for r in rows:
         bucket = "test" if r["split"] == "test" else ("val" if r["speakerId"] in val_speakers else "train")
@@ -198,7 +213,7 @@ def build_utterance_sets(rows: list[dict], val_speakers: set[str], keep: list[in
     out = {}
     for name, rs in packs.items():
         out[name] = {
-            "X": np.asarray([[r["utterance"]["features"][i] for i in keep] for r in rs], dtype=np.float32),
+            "X": np.asarray([[r["utterance"][field][i] for i in keep] for r in rs], dtype=np.float32),
             **{
                 t: np.asarray([r["utterance"]["labels"][t] for r in rs], dtype=np.float32)
                 for t in UTTERANCE_TARGETS
@@ -224,11 +239,28 @@ def main() -> int:
         default="",
         help="comma-separated utterance features to exclude, for ablations",
     )
+    ap.add_argument(
+        "--feature-version",
+        type=int,
+        choices=(1, 2),
+        default=2,
+        help="1 summarises each word as eleven averages; 2 keeps the shape of "
+        "its per-character series. Both read the same extraction.",
+    )
     args = ap.parse_args()
 
     meta = json.loads(args.meta.read_text(encoding="utf-8"))
-    word_keys = list(meta["wordFeatureKeys"])
-    utt_keys_all = list(meta["utteranceFeatureKeys"])
+    if args.feature_version == 2:
+        if "wordFeatureKeysV2" not in meta:
+            print("features predate v2; re-run extract_features.ts", file=sys.stderr)
+            return 1
+        field = "featuresV2"
+        word_keys = list(meta["wordFeatureKeysV2"])
+        utt_keys_all = list(meta["utteranceFeatureKeysV2"])
+    else:
+        field = "features"
+        word_keys = list(meta["wordFeatureKeys"])
+        utt_keys_all = list(meta["utteranceFeatureKeys"])
 
     rows = load_rows(args.features)
     if args.adults_only:
@@ -256,8 +288,8 @@ def main() -> int:
     assert not (val_speakers & test_speakers), "validation speakers leaked from test"
     assert not (train_speakers & test_speakers), "training speakers leaked from test"
 
-    words = build_word_sets(rows, val_speakers)
-    utts = build_utterance_sets(rows, val_speakers, keep_idx)
+    words = build_word_sets(rows, val_speakers, field)
+    utts = build_utterance_sets(rows, val_speakers, keep_idx, field)
     print(
         f"utterances train/val/test = {len(utts['train']['X'])}/{len(utts['val']['X'])}/{len(utts['test']['X'])}"
         f"   words = {len(words['train']['X'])}/{len(words['val']['X'])}/{len(words['test']['X'])}"
@@ -350,6 +382,9 @@ def main() -> int:
             "testSpeakers": len(test_speakers),
         },
         "filters": {"adultsOnly": args.adults_only},
+        "featureVersion": args.feature_version,
+        # Every fitted constant has to be attributable, including this one.
+        "weakCharGop": meta.get("weakCharGop"),
         "utteranceFeatures": {
             "mode": args.utterance_features,
             "dropped": sorted(dropped),

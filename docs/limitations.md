@@ -22,10 +22,10 @@ to report only what the transcript comparison found.
 
 ### Word bands
 
-`needsAttention` runs precision 0.42 and recall 0.56 on held-out data: about two
-in five flags are real, and about half the real problems get flagged. Treat it as
+`needsAttention` runs precision 0.47 and recall 0.54 on held-out data: nearly one
+flag in two is real, and about half the real problems get flagged. Treat it as
 "worth listening to again", never as "you said this wrong". Separating `average`
-from `bad` is weaker still, near 0.27 precision for both.
+from `bad` is weaker, near 0.28 precision for `average`.
 
 ### Pronunciation / fluency
 

@@ -22,6 +22,20 @@ export type AlignmentSpan = {
  * `WORD_FEATURE_KEYS` in `@readaloudkit/gop` is the model input contract; adding
  * a member here without updating that list will not reach a scoring head.
  */
+/**
+ * One aligned character, before it is summarised into a word.
+ *
+ * Kept because averaging it away loses what a listener reacts to: two words can
+ * share a mean posterior while one was read cleanly and the other had a single
+ * mangled syllable.
+ */
+export type GopChar = {
+  lab: string
+  gop: number
+  margin: number
+  dur: number
+}
+
 export type GopWord = {
   tok: string
   t0: number
@@ -37,6 +51,45 @@ export type GopWord = {
   charPerSec: number
   blankRatio: number
   logNFrames: number
+
+  /** The per-character series the summary above was built from. */
+  chars: GopChar[]
+
+  // Shape of the per-character posterior series.
+  charGopMin: number
+  charGopMax: number
+  charGopStd: number
+  charGopRange: number
+  charGopP25: number
+  /** Where the worst character sits: 0 at the start of the word, 1 at the end. */
+  worstCharPos: number
+  nWeakChars: number
+  fracWeakChars: number
+  headGop: number
+  tailGop: number
+  headTailDelta: number
+
+  // Shape of the per-character duration series, which is the stress proxy.
+  // English stress lives in how duration is distributed across a word, so a
+  // word-level duration average cannot represent it at all.
+  charDurMax: number
+  charDurMin: number
+  charDurStd: number
+  charDurCv: number
+  longestCharPos: number
+  durFrontBackRatio: number
+
+  // Margin distribution inside the word.
+  charMarginMin: number
+  charMarginP25: number
+
+  // Context: a word after a long silence is heard differently from one in flow.
+  gapBefore: number
+  gapAfter: number
+  prevGopMean: number
+  nextGopMean: number
+  relDur: number
+  relCharPerSec: number
 }
 
 export type PauseWhere = 'lead' | 'mid' | 'tail'
@@ -175,7 +228,7 @@ export type ScoringInput = {
 export interface ScoringBackend {
   readonly name: string
   /**
-   * Which weights are loaded, e.g. `0.4-community`. The backend name alone does
+   * Which weights are loaded, e.g. `0.5-community`. The backend name alone does
    * not identify them — successive releases share it — so a bug report has no
    * way to say which numbers it saw unless this is reported too.
    */

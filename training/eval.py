@@ -84,10 +84,20 @@ def main() -> int:
     manifest = json.loads((args.onnx / "scoring.json").read_text(encoding="utf-8"))
     levels = manifest["wordLevels"]
     utt_keys = manifest["utteranceFeatureKeys"]
-    all_keys = json.loads((HERE / "data" / "features.meta.json").read_text(encoding="utf-8"))[
-        "utteranceFeatureKeys"
-    ]
+    meta = json.loads((HERE / "data" / "features.meta.json").read_text(encoding="utf-8"))
+
+    # Which extraction the shipped weights read. The heads carry their own key
+    # list, so the release decides this, not a flag: evaluating v2 weights
+    # against v1 columns would silently score a different model.
+    version = int(manifest.get("provenance", {}).get("featureVersion", 1))
+    word_field = "featuresV2" if version >= 2 else "features"
+    utt_field = "featuresV2" if version >= 2 else "features"
+    all_keys = meta["utteranceFeatureKeysV2" if version >= 2 else "utteranceFeatureKeys"]
+    missing = [k for k in utt_keys if k not in all_keys]
+    if missing:
+        raise SystemExit(f"features lack {missing}; re-run extract_features.ts")
     keep = [all_keys.index(k) for k in utt_keys]
+    print(f"release {manifest.get('version', '?')}, feature version {version}")
 
     rows = load_rows(args.features, args.split)
     if not rows:
@@ -96,7 +106,7 @@ def main() -> int:
 
     report: dict = {"split": args.split, "utterances": len(rows), "threshold": args.threshold}
 
-    word_x = np.asarray([w["features"] for r in rows for w in r["words"]], dtype=np.float32)
+    word_x = np.asarray([w[word_field] for r in rows for w in r["words"]], dtype=np.float32)
     word_y = np.asarray(
         [levels.index(w["level"]) for r in rows for w in r["words"]], dtype=np.int64
     )
@@ -150,7 +160,7 @@ def main() -> int:
     )
 
     utt_x = np.asarray(
-        [[r["utterance"]["features"][i] for i in keep] for r in rows], dtype=np.float32
+        [[r["utterance"][utt_field][i] for i in keep] for r in rows], dtype=np.float32
     )
     print()
     for head, target in (

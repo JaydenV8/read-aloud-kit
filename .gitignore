@@ -11,3 +11,9 @@ models/scoring/
 .env.*
 coverage
 .idea
+
+# `releases/` is checked in, weights and all — they are about a megabyte a
+# generation, and a clone that cannot score is a poor demonstration of a
+# scorer. `models/scoring/` stays ignored: that is where a local export goes
+# when you want to override what shipped.
+training/artifacts_v1/

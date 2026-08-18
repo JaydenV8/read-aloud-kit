@@ -62,8 +62,8 @@ Limits: 20 MB, 0.2–120 s, reference text up to 5000 characters. Audio is not w
 
 `level` and `needsAttention` come off one threshold, so a word is never shown as
 `bad` while the flag says it is fine. **Read `needsAttention`, not `level`**: the
-flag runs precision 0.42 on held-out data, while telling `average` from `bad`
-runs about 0.27. Both are hints. `MODEL_CARD.md` has the numbers.
+flag runs precision 0.47 on held-out data, while telling `average` from `bad`
+runs about 0.28 for `average`. Both are hints. `MODEL_CARD.md` has the numbers.
 
 #### `content`
 

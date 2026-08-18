@@ -20,9 +20,14 @@ import { ReadAloudAnalyzer } from '@readaloudkit/core'
 import { UTTERANCE_FEATURE_KEYS, utteranceVector } from '@readaloudkit/features'
 import {
   UTTERANCE_GOP_KEYS,
+  UTTERANCE_GOP_KEYS_V2,
+  WEAK_CHAR_GOP,
   WORD_FEATURE_KEYS,
+  WORD_FEATURE_KEYS_V2,
   utteranceGopFeatures,
+  utteranceGopFeaturesV2,
   wordVector,
+  wordVectorV2,
 } from '@readaloudkit/gop'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -110,6 +115,9 @@ async function main() {
       {
         wordFeatureKeys: WORD_FEATURE_KEYS,
         utteranceFeatureKeys: [...UTTERANCE_FEATURE_KEYS, ...UTTERANCE_GOP_KEYS],
+        wordFeatureKeysV2: WORD_FEATURE_KEYS_V2,
+        utteranceFeatureKeysV2: [...UTTERANCE_FEATURE_KEYS, ...UTTERANCE_GOP_KEYS_V2],
+        weakCharGop: WEAK_CHAR_GOP,
         note: 'Feature order is the model input contract. Regenerate features if it changes.',
       },
       null,
@@ -143,6 +151,8 @@ async function main() {
 
     const gopWords = aligned.map((w) => w.gop!)
     const uttGop = utteranceGopFeatures(gopWords)
+    const uttGopV2 = utteranceGopFeaturesV2(gopWords)
+    const prosody = utteranceVector(result.prosody)
     const record = {
       utteranceId: row.utteranceId,
       speakerId: row.speakerId,
@@ -151,12 +161,17 @@ async function main() {
       durationSec: row.durationSec,
       hypothesis: result.hypothesis,
       utterance: {
-        features: [...utteranceVector(result.prosody), ...UTTERANCE_GOP_KEYS.map((k) => uttGop[k])],
+        features: [...prosody, ...UTTERANCE_GOP_KEYS.map((k) => uttGop[k])],
+        featuresV2: [...prosody, ...UTTERANCE_GOP_KEYS_V2.map((k) => uttGopV2[k])],
         labels: row.labels,
       },
       words: row.words.map((w, i) => ({
         text: w.text,
         features: wordVector(gopWords[i]!),
+        featuresV2: wordVectorV2(gopWords[i]!),
+        // The raw series, so the weak-character threshold can be swept on this
+        // corpus rather than inherited from somewhere it was not measured.
+        charGops: gopWords[i]!.chars.map((c) => Math.round(c.gop * 1e6) / 1e6),
         accuracy: w.accuracy,
         stress: w.stress,
         total: w.total,

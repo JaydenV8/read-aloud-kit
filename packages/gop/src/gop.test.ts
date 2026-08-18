@@ -5,6 +5,7 @@ import type { GopWord } from '@readaloudkit/types'
 import {
   GOP_SILENT,
   WORD_FEATURE_KEYS,
+  noCharSeries,
   utteranceGopFeatures,
   wordConfidence,
   wordIsOmission,
@@ -59,6 +60,7 @@ function word(over: Partial<GopWord> = {}): GopWord {
     charPerSec: 13.3,
     blankRatio: 0.2,
     logNFrames: Math.log(13),
+    ...noCharSeries(),
     ...over,
   }
 }

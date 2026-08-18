@@ -1,3 +1,4 @@
+import { noCharSeries } from '@readaloudkit/gop'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -35,6 +36,7 @@ function asGopWord(w: { tok: string; t0: number; t1: number }): GopWord {
     charPerSec: 0,
     blankRatio: 0,
     logNFrames: 0,
+    ...noCharSeries(),
   }
 }
 

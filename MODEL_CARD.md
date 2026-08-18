@@ -9,11 +9,20 @@ comparable to Pearson's scoring system. See [Scale](#scale).
 
 | | |
 |---|---|
-| Version | community-0.1 |
+| Version | 0.5-community |
 | Model | LightGBM, exported to ONNX |
-| Size | 1.3 MB for the four shipped heads |
+| Size | 1.0 MB for the four shipped heads |
 | Training data | speechocean762 only |
+| Word features | 36 (`WORD_FEATURE_KEYS_V2`) |
+| Utterance features | 32 of 45 |
 | Runtime | onnxruntime-node, CPU |
+
+Releases are numbered to match the generation they correspond to, with a
+`-community` suffix. `0.4-community` summarised each word as eleven averages;
+`0.5-community` keeps the shape of its per-character series. Both are in
+`releases/`, and a release carries the feature contract it was fitted on, so the
+runtime assembles its input from the shipped key list rather than from a version
+number.
 
 ## Training data
 
@@ -44,21 +53,44 @@ answering `good` every time scores 0.881.
 
 | | precision | recall | F1 | support |
 |---|---|---|---|---|
-| good | 0.938 | 0.894 | 0.915 | 14062 |
-| average | 0.268 | 0.256 | 0.262 | 1010 |
-| bad | 0.279 | 0.497 | 0.357 | 895 |
+| good | 0.936 | 0.918 | 0.927 | 14062 |
+| average | 0.281 | 0.241 | 0.259 | 1010 |
+| bad | 0.351 | 0.514 | 0.417 | 895 |
 
-Accuracy 0.831, macro F1 0.511.
+Accuracy 0.853, macro F1 0.535.
 
 The single decision that matters — is this word worth pointing at — runs
-**precision 0.417, recall 0.562**, flagging 16% of words against a true rate of
+**precision 0.472, recall 0.539**, flagging 13.6% of words against a true rate of
 11.9%.
 
-So: about two in five flags are real, and about half of the real problems get
+So: nearly one flag in two is real, and about half of the real problems get
 flagged. That is a usable hint and a bad verdict. A display should treat a flag
 as "worth listening to again", never as "you said this wrong". Telling `average`
-from `bad` is weaker still — both sit near 0.27 precision — so consider
+from `bad` is still weak — `average` sits near 0.28 precision — so consider
 rendering one highlight rather than two shades.
+
+### Against 0.4-community
+
+Same corpus, same official split, same decision rule, same harness. The only
+change is what a word is summarised as.
+
+| | 0.4-community | 0.5-community |
+|---|---|---|
+| word accuracy | 0.831 | **0.853** |
+| word macro F1 | 0.511 | **0.535** |
+| `bad` F1 | 0.357 | **0.417** |
+| flag precision | 0.417 | **0.472** |
+| flag recall | 0.562 | 0.539 |
+| words flagged | 2564 | **2174** |
+| accuracy r | 0.652 | **0.665** |
+| fluency r | 0.729 | **0.737** |
+| total r | 0.684 | **0.687** |
+
+The gain is concentrated where it is worth having: the flag gets more precise
+while flagging 390 fewer words, and `bad` — the rarest and most consequential
+class — improves most. The utterance heads move much less, which is what a
+six-word corpus predicts: those features describe how delivery is distributed
+across an utterance, and six words leave little to distribute.
 
 ### Utterance scores
 
@@ -73,7 +105,7 @@ rendering one highlight rather than two shades.
 For context, GOPT (ICASSP 2022) reports 0.742 sentence-level PCC on this corpus
 with a transformer over per-phone GOP vectors. These heads are gradient-boosted
 trees over 19 utterance-level features and land below that, which is the
-expected trade for a 1.3 MB model that runs on CPU in Node.
+expected trade for a 1.0 MB model that runs on CPU in Node.
 
 ## Scale
 
@@ -96,8 +128,10 @@ reference text, and is on 0–5.
 runtime. The corpus scores stress `{5, 10}` and only 0.9% of words score 5, and
 mono-syllable words are correct by definition, so the positive class is both
 tiny and only reachable in polysyllables. The head reaches 0.044 precision on
-test — about twenty false alarms per real one. Sub-word features would be needed
-to do better; word-level aggregates are not enough.
+test — about twenty false alarms per real one. 0.5-community's per-character
+features raise it to 0.053, which is the right direction and nowhere near
+enough. The limit is the label: 127 positives in the test split, none of them
+reachable in a mono-syllable.
 
 **Prosodic.** Trained, exported, not wired to an output field. There is nowhere
 in the current API contract for it.
@@ -113,9 +147,10 @@ length. This costs little on the corpus and should transfer better, but it is a
 design argument, not a measurement: nothing here has been evaluated at 40–80
 words.
 
-**Speaker variance.** A 250-utterance slice of the test split scores 0.572 word
-agreement where the full split scores 0.831. Small samples of this corpus are
-not informative about a model's quality.
+**Speaker variance.** A 250-utterance slice of the test split scores well away
+from the full split — speaker-to-speaker variance on this corpus is large, and
+small samples are not informative about a model's quality. Every number here is
+on all 2500 test utterances.
 
 **Speaker population.** All speakers are Mandarin-native, and roughly half are
 children. Behaviour on other first languages is untested.
@@ -135,11 +170,19 @@ reference text. There is no free-speech mode.
 pnpm corpus:download
 pnpm corpus:prepare
 pnpm features:extract
+python training/sweep_weak_char.py   # derives WEAK_CHAR_GOP from this corpus
+pnpm features:extract                # again, once the constant is set
 pnpm heads:train
 pnpm heads:export
 pnpm heads:eval        # the numbers above
 pnpm runtime:verify    # the same heads through the Node serving path
 ```
+
+The sweep runs before the final extraction because `WEAK_CHAR_GOP` feeds two
+word features and two utterance aggregates. It is swept on the training split
+only, and lands at **-4.3** on this corpus; the objective is flat between about
+-5 and -2.5, so the value matters less than deriving it here rather than
+importing one measured on other data.
 
 `heads:eval` scores the ONNX graphs in Python. `runtime:verify` runs corpus
 audio through the whole Node path and checks it lands on the same answers, which

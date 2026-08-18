@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { UTTERANCE_FEATURE_KEYS, utteranceVector } from '@readaloudkit/features'
-import { UTTERANCE_GOP_KEYS, utteranceGopFeatures, wordVector } from '@readaloudkit/gop'
+import { UTTERANCE_GOP_KEYS_V2, utteranceGopFeaturesV2, wordVectorBy } from '@readaloudkit/gop'
 import type {
   ScoredWord,
   ScoringBackend,
@@ -14,16 +14,19 @@ import type {
 /**
  * Probability of `average` or `bad` above which a word is worth pointing at.
  *
- * Chosen from the test split rather than picked: at 0.8 the collapsed decision
- * runs precision 0.42 / recall 0.56 and flags about one word in six, against a
- * true rate of one in eight. Loosening to 0.5 flags better than a third of every
- * utterance at precision 0.27, and tightening to 0.9 finds a tenth of the real
+ * At 0.8, `0.5-community` runs precision 0.47 / recall 0.54 and flags about one
+ * word in seven, against a true rate of one in eight. Loosening it floods the
+ * utterance with low-precision flags; tightening it finds too few of the real
  * problems. See MODEL_CARD.md.
+ *
+ * It is reported on the test split, which is the one number here selected
+ * against data the heads were kept away from. Treat it as a display default to
+ * be re-derived if the heads change, not as a measured optimum.
  */
 export const ATTENTION_THRESHOLD = 0.8
 
 export type ScoringManifest = {
-  /** Which release these weights are, e.g. `0.4-community`. */
+  /** Which release these weights are, e.g. `0.5-community`. */
   version: string
   inputName: string
   wordFeatureKeys: string[]
@@ -132,13 +135,34 @@ export class CommunityScoringBackend implements ScoringBackend {
 
     // The heads were trained on a subset of the utterance vector; map their key
     // list back onto positions in the full one so the runtime feeds the columns
-    // the weights expect.
-    const full = [...UTTERANCE_FEATURE_KEYS, ...UTTERANCE_GOP_KEYS] as string[]
+    // the weights expect. v2's list is a superset of v1's with the shared keys
+    // unchanged, so one lookup table serves either generation.
+    const full = [...UTTERANCE_FEATURE_KEYS, ...UTTERANCE_GOP_KEYS_V2] as string[]
     const utteranceIndex = manifest.utteranceFeatureKeys.map((k) => {
       const i = full.indexOf(k)
       if (i < 0) throw new Error(`scoring head wants unknown feature ${k}`)
       return i
     })
+
+    // A head fed a vector of the wrong width does not fail, it scores nonsense.
+    // The graph knows what it wants, so check it once here rather than never.
+    const widthOf = (s: Session) => {
+      const meta = (s as unknown as { inputMetadata?: Record<string, { dimensions?: number[] }> })
+        .inputMetadata
+      const dims = meta?.[manifest.inputName]?.dimensions
+      const last = dims?.[dims.length - 1]
+      return typeof last === 'number' && last > 0 ? last : null
+    }
+    const expect = (s: Session, want: number, what: string) => {
+      const got = widthOf(s)
+      if (got !== null && got !== want) {
+        throw new Error(`${what} wants ${got} features, manifest declares ${want}`)
+      }
+    }
+    expect(wordLevel, manifest.wordFeatureKeys.length, 'word_level.onnx')
+    for (const [field, session] of Object.entries(utterance)) {
+      expect(session, manifest.utteranceFeatureKeys.length, field)
+    }
 
     return new CommunityScoringBackend(manifest, wordLevel, utterance, utteranceIndex)
   }
@@ -150,7 +174,9 @@ export class CommunityScoringBackend implements ScoringBackend {
 
     const nWordFeatures = this.manifest.wordFeatureKeys.length
     const flat = new Float32Array(input.gopWords.length * nWordFeatures)
-    input.gopWords.forEach((w, i) => flat.set(wordVector(w), i * nWordFeatures))
+    input.gopWords.forEach((w, i) =>
+      flat.set(wordVectorBy(w, this.manifest.wordFeatureKeys), i * nWordFeatures),
+    )
     const wordOut = await this.wordLevel.run({
       [this.manifest.inputName]: new ort.Tensor('float32', flat, [
         input.gopWords.length,
@@ -179,8 +205,11 @@ export class CommunityScoringBackend implements ScoringBackend {
       return { level: levels[best] ?? 'average', needsAttention }
     })
 
-    const agg = utteranceGopFeatures(input.gopWords)
-    const fullVector = [...utteranceVector(input.prosody), ...UTTERANCE_GOP_KEYS.map((k) => agg[k])]
+    const agg = utteranceGopFeaturesV2(input.gopWords)
+    const fullVector = [
+      ...utteranceVector(input.prosody),
+      ...UTTERANCE_GOP_KEYS_V2.map((k) => agg[k]),
+    ]
     const x = Float32Array.from(this.utteranceIndex.map((i) => fullVector[i] ?? 0))
     const dims = [1, x.length]
 

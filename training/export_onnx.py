@@ -109,7 +109,12 @@ def main() -> int:
         flag = "" if name in SHIPPED else "   (not loaded by the runtime)"
         print(f"  {name:22} {path.stat().st_size / 1024:7.1f} KB  parity={parity['maxAbs']:.2e}{flag}")
 
+    # The number tracks the feature contract the heads were fitted on: 0.4 is the
+    # eleven-average word summary, 0.5 keeps the per-character series. The suffix
+    # marks the corpus, and every release here is speechocean762 and nothing else.
+    version = f"0.{4 if provenance.get('featureVersion', 1) < 2 else 5}-community"
     manifest = {
+        "version": version,
         "inputName": INPUT_NAME,
         "wordFeatureKeys": bundle["word_keys"],
         "utteranceFeatureKeys": bundle["utterance_keys"],
@@ -123,6 +128,9 @@ def main() -> int:
             "scores.overall": "utterance_total",
         },
         "metrics": {k: v.get("test") for k, v in metrics.items() if isinstance(v, dict)},
+        "metricsNote": (
+            "Raw argmax over the head's classes. The runtime does not score this way: it collapses to the ATTENTION_THRESHOLD decision, which MODEL_CARD.md reports and training/eval.py reproduces. Expect the card's accuracy to be higher than the number here — they are different rules, not different models."
+        ),
         "provenance": provenance,
     }
     (args.out / "scoring.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
