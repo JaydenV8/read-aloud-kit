@@ -1,5 +1,7 @@
 # ReadAloudKit
 
+[![CI](https://github.com/JaydenV8/read-aloud-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/JaydenV8/read-aloud-kit/actions/workflows/ci.yml)
+
 Read-aloud pronunciation and fluency scoring in TypeScript. Reference text plus
 audio in; a word-level error map, per-word acoustic evidence, and utterance
 scores out — from one wav2vec2 forward pass, on CPU, in Node.
@@ -220,6 +222,10 @@ reproduces `features.jsonl` byte for byte.
 pnpm test      # 60 tests, including the cross-language goldens
 pnpm oxlint
 ```
+
+The suite needs no acoustic model — alignment and GOP run against the
+torchaudio goldens, scoring against the checked-in heads — so CI is
+`pnpm install && pnpm test` and finishes in seconds.
 
 ## License
 
