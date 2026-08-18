@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { noCharSeries } from '@readaloudkit/gop'
 import { describe, expect, it } from 'vitest'
 import type { GopWord, ProsodyFeatures, ScoringInput } from '@readaloudkit/types'
@@ -66,7 +68,24 @@ describe('noop backend', () => {
   })
 })
 
+/**
+ * The repository ships a release, so resolution must succeed here.
+ *
+ * These three cases are the only ones that load the weights that actually go
+ * out, and skipping them is indistinguishable from passing them in a CI
+ * summary. So the skip is allowed exactly once — for someone who deleted
+ * `releases/` to use their own backend — and is a failure otherwise.
+ */
+const shipsARelease = existsSync(resolve(import.meta.dirname, '../../../releases/CURRENT'))
 const installed = scoringReady()
+
+describe('shipped release', () => {
+  it('resolves to loadable heads whenever one is checked in', () => {
+    if (!shipsARelease) return
+    expect(installed).toBe(true)
+  })
+})
+
 const withHeads = installed ? describe : describe.skip
 
 withHeads('community backend', () => {
