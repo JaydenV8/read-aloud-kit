@@ -17,3 +17,4 @@ coverage
 # scorer. `models/scoring/` stays ignored: that is where a local export goes
 # when you want to override what shipped.
 training/artifacts_v1/
+__pycache__/

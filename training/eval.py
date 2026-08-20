@@ -11,12 +11,14 @@ MODEL_CARD.md without needing the training configuration.
 from __future__ import annotations
 
 import argparse
+import re
 import json
 from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
 
+HIDDEN_KEY = re.compile(r"^hid\d+$")
 HERE = Path(__file__).resolve().parent
 
 
@@ -73,6 +75,7 @@ def main() -> int:
     ap.add_argument("--onnx", type=Path, default=HERE / "artifacts" / "onnx")
     ap.add_argument("--split", default="test", choices=("train", "test", "all"))
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--hidden", type=Path, default=HERE / "data" / "hidden_l3.f32")
     ap.add_argument(
         "--threshold",
         type=float,
@@ -93,6 +96,11 @@ def main() -> int:
     word_field = "featuresV2" if version >= 2 else "features"
     utt_field = "featuresV2" if version >= 2 else "features"
     all_keys = meta["utteranceFeatureKeysV2" if version >= 2 else "utteranceFeatureKeys"]
+    # `hid*` come from the release's own projection of the pooled hidden layer,
+    # not from the extraction, so they are not looked for among the feature keys.
+    hidden_manifest = manifest.get("hiddenProjection")
+    n_hidden = hidden_manifest["components"] if hidden_manifest else 0
+    utt_keys = [k for k in utt_keys if not HIDDEN_KEY.match(k)]
     missing = [k for k in utt_keys if k not in all_keys]
     if missing:
         raise SystemExit(f"features lack {missing}; re-run extract_features.ts")
@@ -104,9 +112,35 @@ def main() -> int:
         raise SystemExit(f"no rows for split {args.split}")
     print(f"{len(rows)} utterances in {args.split}")
 
+    word_hidden = utt_hidden = None
+    if n_hidden:
+        # Evaluated through the same graph the runtime multiplies by, so this
+        # measures the projection that ships rather than the fit it came from.
+        all_rows = load_rows(args.features, "all")
+        flat = np.fromfile(args.hidden, dtype=np.float32).reshape(-1, 768)
+        want = sum(len(r["words"]) + 1 for r in all_rows)
+        if flat.shape[0] != want:
+            raise SystemExit(f"{args.hidden} holds {flat.shape[0]} rows, features imply {want}")
+        keep_ids = {r["utteranceId"] for r in rows}
+        w_sel, u_sel, off = [], [], 0
+        for r in all_rows:
+            n = len(r["words"])
+            if r["utteranceId"] in keep_ids:
+                w_sel.append(flat[off : off + n])
+                u_sel.append(flat[off + n])
+            off += n + 1
+        proj = lambda name, X: ort.InferenceSession(  # noqa: E731
+            str(args.onnx / hidden_manifest[name]), providers=["CPUExecutionProvider"]
+        ).run(None, {"hidden": X})[0]
+        word_hidden = proj("word", np.vstack(w_sel))
+        utt_hidden = proj("utterance", np.vstack(u_sel))
+        print(f"hidden layer {hidden_manifest['layer']}: +{n_hidden} features")
+
     report: dict = {"split": args.split, "utterances": len(rows), "threshold": args.threshold}
 
     word_x = np.asarray([w[word_field] for r in rows for w in r["words"]], dtype=np.float32)
+    if word_hidden is not None:
+        word_x = np.hstack([word_x, word_hidden])
     word_y = np.asarray(
         [levels.index(w["level"]) for r in rows for w in r["words"]], dtype=np.int64
     )
@@ -162,6 +196,8 @@ def main() -> int:
     utt_x = np.asarray(
         [[r["utterance"][utt_field][i] for i in keep] for r in rows], dtype=np.float32
     )
+    if utt_hidden is not None:
+        utt_x = np.hstack([utt_x, utt_hidden])
     print()
     for head, target in (
         ("utterance_accuracy", "accuracy"),

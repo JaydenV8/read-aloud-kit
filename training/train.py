@@ -185,6 +185,65 @@ def classification_summary(y: np.ndarray, pred: np.ndarray, names: tuple[str, ..
     }
 
 
+def load_hidden(rows: list[dict], sidecar: Path, projection: Path):
+    """Project the pooled sidecar through the release's own graph.
+
+    Read back with the same stride and ordering `extract_features.ts` wrote --
+    one row per word then one for the clip -- and checked against the label
+    counts, because a sidecar that is off by one word would train every later
+    word against its neighbour's label and show up only as a slightly worse
+    model.
+    """
+    import onnxruntime as ort
+
+    flat = np.fromfile(sidecar, dtype=np.float32).reshape(-1, 768)
+    want = sum(len(r["words"]) + 1 for r in rows)
+    if flat.shape[0] != want:
+        raise SystemExit(f"{sidecar} holds {flat.shape[0]} rows, the features imply {want}")
+
+    words, utts, off = [], [], 0
+    for r in rows:
+        n = len(r["words"])
+        words.append(flat[off : off + n])
+        utts.append(flat[off + n])
+        off += n + 1
+
+    def run(name, X):
+        s = ort.InferenceSession(str(projection / f"hidden_{name}.onnx"),
+                                 providers=["CPUExecutionProvider"])
+        return s.run(None, {"hidden": X})[0]
+
+    return run("word", np.vstack(words)), run("utterance", np.vstack(utts))
+
+
+def bucket_of(r: dict, val_speakers: set[str]) -> str:
+    return "test" if r["split"] == "test" else ("val" if r["speakerId"] in val_speakers else "train")
+
+
+def attach_word_hidden(rows, words, val_speakers, proj):
+    packs = {"train": [], "val": [], "test": []}
+    i = 0
+    for r in rows:
+        b = bucket_of(r, val_speakers)
+        for _ in r["words"]:
+            packs[b].append(proj[i])
+            i += 1
+    for name in packs:
+        words[name]["X"] = np.hstack(
+            [words[name]["X"], np.asarray(packs[name], dtype=np.float32)]
+        )
+    return words
+
+
+def attach_utterance_hidden(rows, utts, val_speakers, proj):
+    packs = {"train": [], "val": [], "test": []}
+    for i, r in enumerate(rows):
+        packs[bucket_of(r, val_speakers)].append(proj[i])
+    for name in packs:
+        utts[name]["X"] = np.hstack([utts[name]["X"], np.asarray(packs[name], dtype=np.float32)])
+    return utts
+
+
 def build_word_sets(rows: list[dict], val_speakers: set[str], field: str = "features"):
     packs = {"train": [], "val": [], "test": []}
     for r in rows:
@@ -242,10 +301,19 @@ def main() -> int:
     ap.add_argument(
         "--feature-version",
         type=int,
-        choices=(1, 2),
+        choices=(1, 2, 3),
         default=2,
         help="1 summarises each word as eleven averages; 2 keeps the shape of "
-        "its per-character series. Both read the same extraction.",
+        "its per-character series; 3 adds a projection of an intermediate "
+        "acoustic layer. 1 and 2 read the same extraction; 3 also needs the "
+        "hidden sidecar.",
+    )
+    ap.add_argument("--hidden", type=Path, default=HERE / "data" / "hidden_l3.f32")
+    ap.add_argument(
+        "--projection",
+        type=Path,
+        default=HERE / "artifacts",
+        help="directory holding hidden_word.onnx / hidden_utterance.onnx from fit_hidden.py",
     )
     args = ap.parse_args()
 
@@ -261,6 +329,11 @@ def main() -> int:
         field = "features"
         word_keys = list(meta["wordFeatureKeys"])
         utt_keys_all = list(meta["utteranceFeatureKeys"])
+
+    if args.feature_version == 3:
+        field = "featuresV2"
+        word_keys = list(meta["wordFeatureKeysV2"])
+        utt_keys_all = list(meta["utteranceFeatureKeysV2"])
 
     rows = load_rows(args.features)
     if args.adults_only:
@@ -290,6 +363,19 @@ def main() -> int:
 
     words = build_word_sets(rows, val_speakers, field)
     utts = build_utterance_sets(rows, val_speakers, keep_idx, field)
+
+    hidden_meta = None
+    if args.feature_version == 3:
+        # The projection is applied through the same ONNX graph the runtime
+        # runs, so a head is fitted on exactly the columns it will be served.
+        hidden_meta = json.loads((args.projection / "hidden_projection.json").read_text())
+        w_proj, u_proj = load_hidden(rows, args.hidden, args.projection)
+        n_hid = hidden_meta["components"]
+        words = attach_word_hidden(rows, words, val_speakers, w_proj)
+        utts = attach_utterance_hidden(rows, utts, val_speakers, u_proj)
+        word_keys = word_keys + [f"hid{i}" for i in range(n_hid)]
+        utt_keys = utt_keys + [f"hid{i}" for i in range(n_hid)]
+        print(f"hidden layer {hidden_meta['layer']}: +{n_hid} features on both heads")
     print(
         f"utterances train/val/test = {len(utts['train']['X'])}/{len(utts['val']['X'])}/{len(utts['test']['X'])}"
         f"   words = {len(words['train']['X'])}/{len(words['val']['X'])}/{len(words['test']['X'])}"
@@ -385,6 +471,7 @@ def main() -> int:
         "featureVersion": args.feature_version,
         # Every fitted constant has to be attributable, including this one.
         "weakCharGop": meta.get("weakCharGop"),
+        "hidden": hidden_meta,
         "utteranceFeatures": {
             "mode": args.utterance_features,
             "dropped": sorted(dropped),

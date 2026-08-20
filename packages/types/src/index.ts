@@ -4,6 +4,20 @@ export type AcousticOutput = {
   logits: Float32Array
   frames: number
   vocabSize: number
+  /**
+   * An intermediate transformer layer, `frames * hiddenSize`, when the graph
+   * emits one.
+   *
+   * The logits are what the decode and the alignment read. They are also the
+   * end of a pipeline trained to keep only what separates one character from
+   * another, and measured against expert labels an early layer carries more of
+   * what the scoring heads want than the last one does. A graph that emits both
+   * gives the heads that layer for the cost of the copy, since the forward pass
+   * computes it either way. Absent on a single-output model.
+   */
+  hidden?: Float32Array
+  hiddenSize?: number
+  hiddenLayer?: number
 }
 
 export interface AcousticModel {
@@ -40,6 +54,13 @@ export type GopWord = {
   tok: string
   t0: number
   t1: number
+  /**
+   * The same span in frames, half-open. `t0`/`t1` are rounded to milliseconds
+   * for display, and anything that has to index back into a per-frame tensor
+   * needs the indices themselves rather than a reconstruction of them.
+   */
+  f0: number
+  f1: number
   gopMean: number
   gopMin: number
   gopStd: number
@@ -215,6 +236,23 @@ export type ScoringResult = {
   words?: ScoredWord[]
 }
 
+/**
+ * An intermediate acoustic layer, pooled.
+ *
+ * Kept off `AnalysisWord` on purpose: this is hundreds of floats per word, it
+ * means nothing to a caller, and the HTTP response is not the place for it.
+ * It travels from the analyzer to the scoring backend and stops there.
+ */
+export type PooledHidden = {
+  /** One vector of `size` per aligned word, in `gopWords` order. */
+  words: Float32Array[]
+  /** The same pooling over the whole clip. */
+  utterance: Float32Array
+  size: number
+  /** Which transformer layer, 1-based, or null if the graph did not say. */
+  layer: number | null
+}
+
 export type ScoringInput = {
   durationMs: number
   words: AnalysisWord[]
@@ -223,6 +261,8 @@ export type ScoringInput = {
   reference: string
   prosody: ProsodyFeatures
   content: ContentScore
+  /** Present only when the acoustic graph emits a hidden layer. */
+  hidden?: PooledHidden
 }
 
 export interface ScoringBackend {
@@ -254,4 +294,6 @@ export type ReadAloudAnalysis = {
   pauses: PauseSpan[]
   tips: string[]
   scores: Scores
+  /** Only when `includeHidden` was asked for; never set by the HTTP route. */
+  hidden?: PooledHidden
 }

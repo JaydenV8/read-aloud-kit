@@ -11,6 +11,8 @@ export type ModelMeta = {
   sha256?: string
   onnx?: string
   source?: string
+  /** Which transformer layer `hidden` carries, 1-based, when the graph emits one. */
+  hidden_layer?: number
 }
 
 export function defaultModelDir(): string {
@@ -59,12 +61,27 @@ export class OnnxAcousticModel implements AcousticModel {
     const ort = await import('onnxruntime-node')
     const input = new ort.Tensor('float32', audio, [1, audio.length])
     const out = await this.session.run({ waveform: input })
-    const first = out[this.session.outputNames[0]!] as import('onnxruntime-node').Tensor
-    const data = first.data as Float32Array
-    const dims = first.dims
+    // By name, not by position. A two-output graph makes the positional read a
+    // silent hazard rather than a loud one: a hidden layer has the same rank as
+    // the logits and differs only in its last dimension, so reading the wrong
+    // one yields a plausible-looking tensor and nonsense downstream.
+    const logits = out.logits as import('onnxruntime-node').Tensor | undefined
+    if (!logits) {
+      throw new Error(`acoustic model has no \`logits\` output (got ${this.session.outputNames.join(', ')})`)
+    }
+    const dims = logits.dims
     const frames = dims.length === 3 ? dims[1]! : dims[0]!
     const vocabSize = dims.length === 3 ? dims[2]! : dims[1]!
-    return { logits: data, frames, vocabSize }
+    const result: AcousticOutput = { logits: logits.data as Float32Array, frames, vocabSize }
+
+    const hidden = out.hidden as import('onnxruntime-node').Tensor | undefined
+    if (hidden) {
+      const hd = hidden.dims
+      result.hidden = hidden.data as Float32Array
+      result.hiddenSize = hd.length === 3 ? hd[2]! : hd[1]!
+      result.hiddenLayer = this.meta.hidden_layer
+    }
+    return result
   }
 }
 

@@ -29,22 +29,30 @@ curl -X POST http://127.0.0.1:3000/v1/read-aloud/analyze \
   "pauses": [ { "startMs": 2449, "endMs": 2570, "durMs": 121, "where": "tail" } ],
   "tips":   [ /* rule-derived, from the error list */ ],
   "scores": { "backend": "community", "content": 5,
-              "pronunciation": 73.7, "fluency": 81.8, "overall": 76.5 }
+              "pronunciation": 75.8, "fluency": 78.0, "overall": 72.6 }
 }
 ```
 
 The scoring heads are checked into `releases/` — about a megabyte — so a clone
 scores without a download step. Only the 378 MB acoustic model is fetched.
 
+The graph emits two tensors from one pass: the CTC logits everything downstream
+is derived from, and one intermediate layer. The second is there because a logit
+layer is trained to discard whatever does not separate one character from the
+next, and measured against expert labels that is most of what a fluency score
+wants. See [What moved the numbers](#what-moved-the-numbers).
+
 ## How it works
 
 ```text
 reference text ───────────────────────────┐
                                           │
-audio → wav2vec2 CTC ──┬─ forced align → per-word GOP ─┐
-   (one ONNX forward)  │                               ├─→ word bands
-                       └─ greedy decode → hypothesis ──┤    pronunciation
-                                          │            │    fluency
+audio → wav2vec2 ──┬── layer 3 ──── pooled per word ────┐
+  (one ONNX        │                                    │
+   forward)        └── CTC logits ─┬─ forced align → GOP ┼─→ word bands
+                                   │                    │   pronunciation
+                                   └─ greedy decode ────┤   fluency
+                                          │             │
                                           └─ word edit alignment
                                                        ↓
                                       omission · substitution · insertion
@@ -65,22 +73,27 @@ alignment and GOP code is additionally pinned frame-by-frame to
 
 ## Results
 
-`0.5-community`, on the corpus's official test split — 2500 utterances, 15967
+`0.6-community`, on the corpus's official test split — 2500 utterances, 15967
 words, from speakers no training or selection step touched.
+
+> 0.6 reads a tensor the earlier acoustic asset did not emit, so
+> `pnpm models:download` fetches a newer graph (tag `acoustic-v2`) whose
+> `logits` are bit-identical to the previous one. Older checkouts pin the older
+> asset and are unaffected.
 
 Word bands. `good` covers 88.1% of words, so **answering `good` every time scores
 0.881** and accuracy alone is a poor summary:
 
 | | precision | recall | F1 | support |
 |---|---|---|---|---|
-| good | 0.936 | 0.918 | 0.927 | 14062 |
-| average | 0.281 | 0.241 | 0.259 | 1010 |
-| bad | 0.351 | 0.514 | 0.417 | 895 |
+| good | 0.933 | 0.927 | 0.930 | 14062 |
+| average | 0.307 | 0.258 | 0.281 | 1010 |
+| bad | 0.382 | 0.491 | 0.429 | 895 |
 
-Accuracy 0.853, macro F1 0.535.
+Accuracy 0.860, macro F1 0.547.
 
 The decision that actually ships is binary — is this word worth pointing at —
-and it runs **precision 0.472, recall 0.539**, flagging 13.6% of words against a
+and it runs **precision 0.487, recall 0.511**, flagging 12.5% of words against a
 true rate of 11.9%. Nearly one flag in two is real and about half the real
 problems get flagged: a usable hint, and a bad verdict. Separating `average`
 from `bad` is weaker still, so the API exposes `needsAttention` as the field to
@@ -90,46 +103,67 @@ Utterance scores, Pearson r against the expert label:
 
 | head | r | MAE | MAE predicting the mean |
 |---|---|---|---|
-| accuracy → `scores.pronunciation` | 0.665 | 0.849 | 1.131 |
-| fluency → `scores.fluency` | 0.737 | 0.693 | 1.056 |
-| total → `scores.overall` | 0.687 | 0.825 | 1.182 |
+| accuracy → `scores.pronunciation` | 0.703 | 0.798 | 1.131 |
+| fluency → `scores.fluency` | 0.761 | 0.662 | 1.056 |
+| total → `scores.overall` | 0.732 | 0.760 | 1.182 |
+
+Measured again through the Node serving path on the same 2500 utterances, these
+reproduce to three decimals (0.7029 / 0.7610 / 0.7320), so they are what a
+request returns rather than what an evaluation script computes.
 
 GOPT (ICASSP 2022) reports 0.742 sentence-level PCC on this corpus with a
-transformer over per-phone GOP vectors. These are gradient-boosted trees over 32
-utterance features and land below it — the expected trade for 1.0 MB of weights
-that run on CPU in Node.
+transformer over per-phone GOP vectors. `scores.overall` is at 0.732 from
+gradient-boosted trees over 64 features, in 1.1 MB of weights on CPU in Node.
 
 ### What moved the numbers
 
-`0.4-community` → `0.5-community` is a controlled change: same backbone, same
-alignment, same audio, same split, same decision rule. The only difference is
-what a word is summarised as — eleven averages, versus 36 features that keep the
-shape of the per-character posterior and duration series plus one word of
-context either side.
+Three generations, each a controlled change on the same backbone, alignment,
+audio, split and decision rule. 0.5 changed what a *word* is summarised as —
+eleven averages versus 36 features keeping the shape of the per-character series.
+0.6 changed which *layer* of the same forward pass is read.
 
-| | 0.4-community | 0.5-community |
-|---|---|---|
-| word macro F1 | 0.511 | **0.535** |
-| `bad` F1 | 0.357 | **0.417** |
-| flag precision | 0.417 | **0.472** |
-| flag recall | 0.562 | 0.539 |
-| words flagged | 2564 | **2174** |
-| pronunciation r | 0.652 | **0.665** |
-| fluency r | 0.729 | **0.737** |
-| overall r | 0.684 | **0.687** |
+| | 0.4-community | 0.5-community | 0.6-community |
+|---|---|---|---|
+| word macro F1 | 0.511 | 0.535 | **0.547** |
+| `bad` F1 | 0.357 | 0.417 | **0.429** |
+| flag precision | 0.417 | 0.472 | **0.487** |
+| flag recall | 0.562 | 0.539 | 0.511 |
+| words flagged | 2564 | 2174 | **2000** |
+| pronunciation r | 0.652 | 0.665 | **0.703** |
+| fluency r | 0.729 | 0.737 | **0.761** |
+| overall r | 0.684 | 0.687 | **0.732** |
 
-The gain lands where it is worth having: the flag gets more precise while
-flagging 390 *fewer* words, and `bad` — rarest and most consequential — improves
-most. The utterance heads barely move, which is what a six-word corpus predicts:
-those features describe how delivery is distributed across an utterance, and six
-words leave little to distribute.
+0.5's gain was at word level; its utterance heads barely moved, which is what a
+six-word corpus predicts of features describing how delivery is distributed
+across an utterance. 0.6 lands the other way round, and larger: the utterance
+heads gain three to twelve times what the entire per-character rework gave them.
 
-Both generations stay in `releases/`, so the comparison is re-runnable rather
-than asserted:
+The reason is that the CTC logits are the *end* of a pipeline trained to keep
+only what separates one character from the next. **Every one of wav2vec2's twelve
+layers is more useful to these heads than the last one** — and the last one is
+what a CTC export normally emits. Reading layer 3 as well costs one extra output
+tensor, 1.4% latency, and no extra arithmetic: the forward pass already computed
+it.
+
+Layer 3 was chosen by 5-fold speaker-disjoint cross-validation over the training
+half, refitting the projection inside every fold; the word head and the utterance
+heads picked it independently. A single 25-speaker holdout had picked layer 9,
+which cross-validation shows is genuinely worse — the holdout was not imprecise,
+it was wrong.
+
+Pooling was swept and did not matter. Mean, standard deviation, first and last
+frame, thirds, extremes, all at a fixed feature budget: nothing beat the plain
+mean on either head. A word here is about six frames, which is very little series
+to have a shape — a negative result that should be revisited at the 40–80 word
+prompts this is aimed at, not treated as settled.
+
+All three generations stay in `releases/`, so the comparison is re-runnable
+rather than asserted:
 
 ```bash
 pnpm heads:eval --onnx releases/0.4-community --split test
 pnpm heads:eval --onnx releases/0.5-community --split test
+pnpm heads:eval --onnx releases/0.6-community --features training/data/features_v3.jsonl
 ```
 
 ## Evaluation discipline
@@ -234,5 +268,6 @@ CC BY 4.0, matching the corpus they derive from — see `LICENSE-MODELS` for the
 attribution to reproduce and `NOTICE` for the citation. The acoustic checkpoint
 is third-party under its own license; see `docs/models.md`.
 
-Package version (`0.1.0`) and head version (`0.5-community`) are separate
-sequences: the heads can be retrained without the API changing, and the reverse.
+Package version (`0.1.0`), head version (`releases/CURRENT`, today
+`0.6-community`) and acoustic asset tag (`acoustic-v2`) are separate sequences:
+the heads can be retrained without the API changing, and the reverse.

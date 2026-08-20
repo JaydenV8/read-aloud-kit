@@ -11,8 +11,8 @@
  *
  * Interrupting is safe: finished utterances are skipped on the next run.
  */
-import { createReadStream, existsSync, readFileSync } from 'node:fs'
-import { appendFile, mkdir, writeFile } from 'node:fs/promises'
+import { appendFileSync, createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
+import { appendFile, mkdir, truncate, writeFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,6 +31,8 @@ import {
 } from '@readaloudkit/gop'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
+/** wav2vec2-base. The sidecar is raw float32, so its stride has to be known to read it back. */
+const HIDDEN_SIZE = 768
 const CORPUS = resolve(HERE, 'data', 'speechocean762')
 
 type PreparedWord = {
@@ -62,6 +64,10 @@ function parseArgs() {
   return {
     input: resolve(get('--input') ?? resolve(HERE, 'data', 'utterances.jsonl')),
     out: resolve(get('--out') ?? resolve(HERE, 'data', 'features.jsonl')),
+    // Pooled hidden layers go to a sidecar rather than into the JSONL: they are
+    // hundreds of float32 per word, and a JSON number per component would cost
+    // an order of magnitude more to write and to parse than the raw bytes.
+    hidden: get('--hidden') ? resolve(get('--hidden')!) : null,
     limit: Number(get('--limit') ?? 0) || 0,
     adultsOnly: argv.includes('--adults-only'),
   }
@@ -77,19 +83,22 @@ async function readJsonl<T>(path: string): Promise<T[]> {
   return rows
 }
 
-async function doneIds(path: string): Promise<Set<string>> {
+async function doneIds(path: string): Promise<{ ids: Set<string>; hiddenRows: number }> {
   const ids = new Set<string>()
-  if (!existsSync(path)) return ids
+  let hiddenRows = 0
+  if (!existsSync(path)) return { ids, hiddenRows }
   const rl = createInterface({ input: createReadStream(path), crlfDelay: Infinity })
   for await (const line of rl) {
     if (!line.trim()) continue
     try {
-      ids.add((JSON.parse(line) as { utteranceId: string }).utteranceId)
+      const row = JSON.parse(line) as { utteranceId: string; words: unknown[] }
+      ids.add(row.utteranceId)
+      hiddenRows += row.words.length + 1
     } catch {
       // A run killed mid-write leaves one torn line; everything before it stands.
     }
   }
-  return ids
+  return { ids, hiddenRows }
 }
 
 async function main() {
@@ -105,10 +114,30 @@ async function main() {
   if (args.limit) rows = rows.slice(0, args.limit)
 
   const already = await doneIds(args.out)
-  const todo = rows.filter((r) => !already.has(r.utteranceId))
-  console.log(`${rows.length} utterances, ${already.size} already extracted, ${todo.length} to go`)
+  const todo = rows.filter((r) => !already.ids.has(r.utteranceId))
+  console.log(`${rows.length} utterances, ${already.ids.size} already extracted, ${todo.length} to go`)
 
   await mkdir(dirname(args.out), { recursive: true })
+  if (args.hidden) {
+    // Repair a sidecar left long by a kill between the two writes. Anything
+    // shorter than the JSONL implies means the two files came from different
+    // runs, and silently continuing would misalign every later word against
+    // its label -- a fault that shows up as a slightly worse model and
+    // nothing else.
+    const size = HIDDEN_SIZE
+    const want = already.hiddenRows * size * 4
+    const have = existsSync(args.hidden) ? statSync(args.hidden).size : 0
+    if (have > want) {
+      await truncate(args.hidden, want)
+      console.log(`sidecar truncated ${have} -> ${want} bytes to match the JSONL`)
+    } else if (have < want) {
+      console.error(
+        `${args.hidden} holds ${have} bytes, the JSONL implies ${want}. ` +
+          'Delete both and re-extract.',
+      )
+      process.exit(1)
+    }
+  }
   await writeFile(
     resolve(dirname(args.out), 'features.meta.json'),
     JSON.stringify(
@@ -132,7 +161,11 @@ async function main() {
     const audio = new Uint8Array(readFileSync(resolve(CORPUS, row.audioPath)))
     let result
     try {
-      result = await analyzer.analyze({ audio, referenceText: row.text })
+      result = await analyzer.analyze({
+        audio,
+        referenceText: row.text,
+        includeHidden: args.hidden !== null,
+      })
     } catch (e) {
       console.warn(`  ${row.utteranceId}: ${(e as Error).message}`)
       skipped += 1
@@ -172,11 +205,30 @@ async function main() {
         // The raw series, so the weak-character threshold can be swept on this
         // corpus rather than inherited from somewhere it was not measured.
         charGops: gopWords[i]!.chars.map((c) => Math.round(c.gop * 1e6) / 1e6),
+        // The aligned frame span. Nothing in the shipped feature set needs it,
+        // but an experiment that wants to summarise this word's audio some
+        // other way has to know which frames are this word's, and recomputing
+        // the alignment separately would not be the same alignment.
+        t0: gopWords[i]!.t0,
+        t1: gopWords[i]!.t1,
         accuracy: w.accuracy,
         stress: w.stress,
         total: w.total,
         level: w.level,
       })),
+    }
+    if (args.hidden) {
+      if (!result.hidden) throw new Error('asked for hidden layers, acoustic model emits none')
+      // One row per word then one for the clip, float32, in JSONL order.
+      // Written *before* the JSONL line on purpose: a run killed between the
+      // two writes can then only leave the sidecar long, which the startup
+      // truncation below repairs exactly. The other order would leave it short,
+      // and nothing but re-extracting could tell which utterance was missing.
+      const size = result.hidden.size
+      const buf = new Float32Array((aligned.length + 1) * size)
+      result.hidden.words.forEach((w, i) => buf.set(w, i * size))
+      buf.set(result.hidden.utterance, aligned.length * size)
+      appendFileSync(args.hidden, Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength))
     }
     await appendFile(args.out, JSON.stringify(record) + '\n')
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 
 import joblib
@@ -110,14 +111,36 @@ def main() -> int:
         print(f"  {name:22} {path.stat().st_size / 1024:7.1f} KB  parity={parity['maxAbs']:.2e}{flag}")
 
     # The number tracks the feature contract the heads were fitted on: 0.4 is the
-    # eleven-average word summary, 0.5 keeps the per-character series. The suffix
-    # marks the corpus, and every release here is speechocean762 and nothing else.
-    version = f"0.{4 if provenance.get('featureVersion', 1) < 2 else 5}-community"
+    # eleven-average word summary, 0.5 keeps the per-character series, 0.6 adds a
+    # projection of an intermediate acoustic layer. The suffix marks the corpus,
+    # and every release here is speechocean762 and nothing else.
+    version = f"0.{ {1: 4, 2: 5, 3: 6}.get(provenance.get('featureVersion', 1), 4) }-community"
+
+    # The projection is part of the release, not of the acoustic model: it is
+    # fitted on this corpus, while the checkpoint stays a stock third-party
+    # export that happens to expose one more tensor.
+    hidden = provenance.get("hidden")
+    hidden_manifest = None
+    if hidden:
+        for name in ("word", "utterance"):
+            src = args.artifacts / hidden["fits"][name]["file"]
+            shutil.copyfile(src, args.out / src.name)
+            print(f"  {'hidden_' + name:22} {src.stat().st_size / 1024:7.1f} KB  "
+                  f"evr={hidden['fits'][name]['explainedVariance']:.3f}")
+        hidden_manifest = {
+            "layer": hidden["layer"],
+            "word": hidden["fits"]["word"]["file"],
+            "utterance": hidden["fits"]["utterance"]["file"],
+            "size": hidden["size"],
+            "components": hidden["components"],
+        }
+
     manifest = {
         "version": version,
         "inputName": INPUT_NAME,
         "wordFeatureKeys": bundle["word_keys"],
         "utteranceFeatureKeys": bundle["utterance_keys"],
+        **({"hiddenProjection": hidden_manifest} if hidden_manifest else {}),
         "wordLevels": list(bundle["word_levels"]),
         "displayScale": DISPLAY_SCALE,
         "heads": exported,

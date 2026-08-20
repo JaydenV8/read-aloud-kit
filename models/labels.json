@@ -36,7 +36,8 @@
     "Z"
   ],
   "onnx": "wav2vec2-base-960h-ctc.onnx",
-  "sha256": "84182b6d8d3abc71ea583670cc11434d0f894663ef65a88db693a7890d084a85",
-  "bytes": 377824515,
-  "class": "EXTERNAL_PRETRAINED"
+  "sha256": "a5162c4510b81c13d7c5dab8c80c577caf643bfcada663d74a6fcc9c02b57356",
+  "bytes": 377748219,
+  "class": "EXTERNAL_PRETRAINED",
+  "hidden_layer": 3
 }

@@ -10,7 +10,7 @@ Base URL: `http://127.0.0.1:3000`
   "ready": true,
   "package": "0.1.0",
   "acoustic": "community",
-  "scoring": { "backend": "community", "version": "0.5-community" }
+  "scoring": { "backend": "community", "version": "0.6-community" }
 }
 ```
 

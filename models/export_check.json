@@ -1,13 +1,18 @@
 {
-  "max_abs": 5.0067901611328125e-05,
-  "torch_shape": [
-    1,
-    49,
-    29
-  ],
-  "ort_shape": [
-    1,
-    49,
-    29
-  ]
+  "hidden_layer": 3,
+  "layers": 12,
+  "opset": 17,
+  "max_abs": {
+    "logits": 0.005140841007232666,
+    "hidden": 1.2442469596862793e-05
+  },
+  "max_rel": {
+    "logits": 0.0003160086429865501,
+    "hidden": 4.037610764960804e-06
+  },
+  "tolerance_rel": 0.001,
+  "torch": "2.13.0",
+  "torchaudio": "2.11.0",
+  "bytes": 377748219,
+  "sha256": "a5162c4510b81c13d7c5dab8c80c577caf643bfcada663d74a6fcc9c02b57356"
 }

@@ -240,6 +240,8 @@ export function wordsFromPath(
       tok,
       t0: Math.round(t0 * 1000) / 1000,
       t1: Math.round(t1 * 1000) / 1000,
+      f0: first,
+      f1: last + 1,
       gopMean: gMean,
       gopMin: gMin,
       gopStd: gStd,
@@ -559,4 +561,33 @@ export function wordIsOmission(w: GopWord, opts: OmissionOptions = {}): boolean 
   if (blankRatio >= 0.92 && nChars >= 5 && dur < 0.1) return true
   if (w.gopMean <= gopFloor) return true
   return false
+}
+
+/**
+ * Mean-pool a per-frame tensor over a half-open frame span.
+ *
+ * Mean and not something richer: nine summaries of the same layer were compared
+ * at a fixed feature budget -- standard deviation, first and last frame, thirds,
+ * extremes -- and none beat the mean on either head. Std is not inert, it just
+ * carries what more components of the mean already carry. A word here averages
+ * six frames, which is very little series to have a shape; the question is worth
+ * reopening at prompt lengths where a word is not six frames.
+ */
+export function poolFrames(
+  data: Float32Array,
+  size: number,
+  frames: number,
+  f0: number,
+  f1: number,
+): Float32Array {
+  const out = new Float32Array(size)
+  const a = Math.min(Math.max(f0, 0), Math.max(frames - 1, 0))
+  const b = Math.min(Math.max(f1, a + 1), frames)
+  for (let t = a; t < b; t++) {
+    const off = t * size
+    for (let d = 0; d < size; d++) out[d]! += data[off + d]!
+  }
+  const n = b - a
+  if (n > 1) for (let d = 0; d < size; d++) out[d]! /= n
+  return out
 }

@@ -1,0 +1,530 @@
+{
+  "version": "0.6-community",
+  "inputName": "input",
+  "wordFeatureKeys": [
+    "gopMean",
+    "gopMin",
+    "gopStd",
+    "marginMean",
+    "marginMin",
+    "nFrames",
+    "nChars",
+    "dur",
+    "charPerSec",
+    "blankRatio",
+    "logNFrames",
+    "charGopMin",
+    "charGopMax",
+    "charGopStd",
+    "charGopRange",
+    "charGopP25",
+    "worstCharPos",
+    "nWeakChars",
+    "fracWeakChars",
+    "headGop",
+    "tailGop",
+    "headTailDelta",
+    "charDurMax",
+    "charDurMin",
+    "charDurStd",
+    "charDurCv",
+    "longestCharPos",
+    "durFrontBackRatio",
+    "charMarginMin",
+    "charMarginP25",
+    "gapBefore",
+    "gapAfter",
+    "prevGopMean",
+    "nextGopMean",
+    "relDur",
+    "relCharPerSec",
+    "hid0",
+    "hid1",
+    "hid2",
+    "hid3",
+    "hid4",
+    "hid5",
+    "hid6",
+    "hid7",
+    "hid8",
+    "hid9",
+    "hid10",
+    "hid11",
+    "hid12",
+    "hid13",
+    "hid14",
+    "hid15",
+    "hid16",
+    "hid17",
+    "hid18",
+    "hid19",
+    "hid20",
+    "hid21",
+    "hid22",
+    "hid23",
+    "hid24",
+    "hid25",
+    "hid26",
+    "hid27",
+    "hid28",
+    "hid29",
+    "hid30",
+    "hid31"
+  ],
+  "utteranceFeatureKeys": [
+    "coverage",
+    "wpm",
+    "pauseMax",
+    "pauseMean",
+    "pauseRatio",
+    "wordDurMean",
+    "wordDurStd",
+    "wordDurCv",
+    "leadSil",
+    "tailSil",
+    "alignOk",
+    "gopMean",
+    "gopStd",
+    "gopMin",
+    "gopP10",
+    "gopP25",
+    "marginMean",
+    "marginP10",
+    "fracLowGop",
+    "charGopMinMean",
+    "charGopMinP10",
+    "charGopStdMean",
+    "fracWeakCharsMean",
+    "fracWordsWithWeakChar",
+    "headTailDeltaMean",
+    "headTailDeltaStd",
+    "charDurCvMean",
+    "charDurCvStd",
+    "worstCharPosMean",
+    "longestCharPosMean",
+    "relDurStd",
+    "gapBeforeMean",
+    "hid0",
+    "hid1",
+    "hid2",
+    "hid3",
+    "hid4",
+    "hid5",
+    "hid6",
+    "hid7",
+    "hid8",
+    "hid9",
+    "hid10",
+    "hid11",
+    "hid12",
+    "hid13",
+    "hid14",
+    "hid15",
+    "hid16",
+    "hid17",
+    "hid18",
+    "hid19",
+    "hid20",
+    "hid21",
+    "hid22",
+    "hid23",
+    "hid24",
+    "hid25",
+    "hid26",
+    "hid27",
+    "hid28",
+    "hid29",
+    "hid30",
+    "hid31"
+  ],
+  "hiddenProjection": {
+    "layer": 3,
+    "word": "hidden_word.onnx",
+    "utterance": "hidden_utterance.onnx",
+    "size": 768,
+    "components": 32
+  },
+  "wordLevels": [
+    "good",
+    "average",
+    "bad"
+  ],
+  "displayScale": {
+    "from": [
+      0.0,
+      10.0
+    ],
+    "to": [
+      10.0,
+      90.0
+    ]
+  },
+  "heads": {
+    "word_level": {
+      "file": "word_level.onnx",
+      "kind": "classifier",
+      "nFeatures": 68,
+      "bytes": 344182,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 1.1920928955078125e-07,
+        "tolerance": 0.0002
+      }
+    },
+    "word_stress": {
+      "file": "word_stress.onnx",
+      "kind": "classifier",
+      "nFeatures": 68,
+      "bytes": 43185,
+      "shipped": false,
+      "parity": {
+        "maxAbs": 1.1920928955078125e-07,
+        "tolerance": 0.0002
+      }
+    },
+    "utterance_accuracy": {
+      "file": "utterance_accuracy.onnx",
+      "kind": "regressor",
+      "nFeatures": 64,
+      "bytes": 225733,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 1.9073486328125e-06,
+        "tolerance": 0.002
+      }
+    },
+    "utterance_fluency": {
+      "file": "utterance_fluency.onnx",
+      "kind": "regressor",
+      "nFeatures": 64,
+      "bytes": 334664,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 2.86102294921875e-06,
+        "tolerance": 0.002
+      }
+    },
+    "utterance_prosodic": {
+      "file": "utterance_prosodic.onnx",
+      "kind": "regressor",
+      "nFeatures": 64,
+      "bytes": 241337,
+      "shipped": false,
+      "parity": {
+        "maxAbs": 1.9073486328125e-06,
+        "tolerance": 0.002
+      }
+    },
+    "utterance_total": {
+      "file": "utterance_total.onnx",
+      "kind": "regressor",
+      "nFeatures": 64,
+      "bytes": 274772,
+      "shipped": true,
+      "parity": {
+        "maxAbs": 1.430511474609375e-06,
+        "tolerance": 0.002
+      }
+    }
+  },
+  "outputs": {
+    "words[].level": "word_level",
+    "scores.pronunciation": "utterance_accuracy",
+    "scores.fluency": "utterance_fluency",
+    "scores.overall": "utterance_total"
+  },
+  "metrics": {
+    "word_level": {
+      "n": 15967,
+      "accuracy": 0.7803,
+      "macro_f1": 0.5267,
+      "per_class": {
+        "good": {
+          "precision": 0.9611,
+          "recall": 0.8125,
+          "f1": 0.8806,
+          "support": 14062
+        },
+        "average": {
+          "precision": 0.2142,
+          "recall": 0.4713,
+          "f1": 0.2946,
+          "support": 1010
+        },
+        "bad": {
+          "precision": 0.2999,
+          "recall": 0.6223,
+          "f1": 0.4048,
+          "support": 895
+        }
+      },
+      "confusion": [
+        [
+          11426,
+          1578,
+          1058
+        ],
+        [
+          292,
+          476,
+          242
+        ],
+        [
+          170,
+          168,
+          557
+        ]
+      ],
+      "majority_class_accuracy": 0.8807
+    },
+    "word_stress": {
+      "n": 15967,
+      "accuracy": 0.9522,
+      "macro_f1": 0.5275,
+      "per_class": {
+        "correct": {
+          "precision": 0.9938,
+          "recall": 0.9578,
+          "f1": 0.9755,
+          "support": 15840
+        },
+        "wrong": {
+          "precision": 0.047,
+          "recall": 0.2598,
+          "f1": 0.0796,
+          "support": 127
+        }
+      },
+      "confusion": [
+        [
+          15171,
+          669
+        ],
+        [
+          94,
+          33
+        ]
+      ],
+      "majority_class_accuracy": 0.992
+    },
+    "utterance_accuracy": {
+      "n": 2500,
+      "pearson": 0.7029,
+      "mae": 0.7979,
+      "rmse": 1.0992,
+      "predict_mean_mae": 1.131
+    },
+    "utterance_fluency": {
+      "n": 2500,
+      "pearson": 0.761,
+      "mae": 0.662,
+      "rmse": 0.9309,
+      "predict_mean_mae": 1.0559
+    },
+    "utterance_prosodic": {
+      "n": 2500,
+      "pearson": 0.7639,
+      "mae": 0.6758,
+      "rmse": 0.9391,
+      "predict_mean_mae": 1.1233
+    },
+    "utterance_total": {
+      "n": 2500,
+      "pearson": 0.732,
+      "mae": 0.7602,
+      "rmse": 1.0618,
+      "predict_mean_mae": 1.1821
+    }
+  },
+  "metricsNote": "Raw argmax over the head's classes. The runtime does not score this way: it collapses to the ATTENTION_THRESHOLD decision, which MODEL_CARD.md reports and training/eval.py reproduces. Expect the card's accuracy to be higher than the number here \u2014 they are different rules, not different models.",
+  "provenance": {
+    "corpora": [
+      {
+        "name": "speechocean762",
+        "license": "CC BY 4.0",
+        "url": "https://www.openslr.org/resources/101/speechocean762.tar.gz",
+        "sha256": "876c34b828c2ebcc35ba2ff1ba5947d50e6b0162fc4a4af91db0942422b3bdd5",
+        "citation": "speechocean762: An Open-Source Non-Native English Speech Corpus for Pronunciation Assessment. Interspeech 2021."
+      }
+    ],
+    "seed": 42,
+    "split": {
+      "test": "corpus official test split, untouched during training",
+      "val": "25 speakers held out of the official train split",
+      "trainSpeakers": 100,
+      "valSpeakers": 25,
+      "testSpeakers": 125
+    },
+    "filters": {
+      "adultsOnly": false
+    },
+    "featureVersion": 3,
+    "weakCharGop": -4.3,
+    "hidden": {
+      "layer": 3,
+      "size": 768,
+      "components": 32,
+      "fits": {
+        "word": {
+          "file": "hidden_word.onnx",
+          "explainedVariance": 0.3749047517776489,
+          "foldError": 3.4332275390625e-05,
+          "onnxError": 1.430511474609375e-05,
+          "fittedOn": 15849
+        },
+        "utterance": {
+          "file": "hidden_utterance.onnx",
+          "explainedVariance": 0.5843206644058228,
+          "foldError": 4.38690185546875e-05,
+          "onnxError": 3.62396240234375e-05,
+          "fittedOn": 2500
+        }
+      }
+    },
+    "utteranceFeatures": {
+      "mode": "invariant",
+      "dropped": [],
+      "keys": [
+        "coverage",
+        "wpm",
+        "pauseMax",
+        "pauseMean",
+        "pauseRatio",
+        "wordDurMean",
+        "wordDurStd",
+        "wordDurCv",
+        "leadSil",
+        "tailSil",
+        "alignOk",
+        "gopMean",
+        "gopStd",
+        "gopMin",
+        "gopP10",
+        "gopP25",
+        "marginMean",
+        "marginP10",
+        "fracLowGop",
+        "charGopMinMean",
+        "charGopMinP10",
+        "charGopStdMean",
+        "fracWeakCharsMean",
+        "fracWordsWithWeakChar",
+        "headTailDeltaMean",
+        "headTailDeltaStd",
+        "charDurCvMean",
+        "charDurCvStd",
+        "worstCharPosMean",
+        "longestCharPosMean",
+        "relDurStd",
+        "gapBeforeMean",
+        "hid0",
+        "hid1",
+        "hid2",
+        "hid3",
+        "hid4",
+        "hid5",
+        "hid6",
+        "hid7",
+        "hid8",
+        "hid9",
+        "hid10",
+        "hid11",
+        "hid12",
+        "hid13",
+        "hid14",
+        "hid15",
+        "hid16",
+        "hid17",
+        "hid18",
+        "hid19",
+        "hid20",
+        "hid21",
+        "hid22",
+        "hid23",
+        "hid24",
+        "hid25",
+        "hid26",
+        "hid27",
+        "hid28",
+        "hid29",
+        "hid30",
+        "hid31"
+      ]
+    },
+    "wordFeatures": [
+      "gopMean",
+      "gopMin",
+      "gopStd",
+      "marginMean",
+      "marginMin",
+      "nFrames",
+      "nChars",
+      "dur",
+      "charPerSec",
+      "blankRatio",
+      "logNFrames",
+      "charGopMin",
+      "charGopMax",
+      "charGopStd",
+      "charGopRange",
+      "charGopP25",
+      "worstCharPos",
+      "nWeakChars",
+      "fracWeakChars",
+      "headGop",
+      "tailGop",
+      "headTailDelta",
+      "charDurMax",
+      "charDurMin",
+      "charDurStd",
+      "charDurCv",
+      "longestCharPos",
+      "durFrontBackRatio",
+      "charMarginMin",
+      "charMarginP25",
+      "gapBefore",
+      "gapAfter",
+      "prevGopMean",
+      "nextGopMean",
+      "relDur",
+      "relCharPerSec",
+      "hid0",
+      "hid1",
+      "hid2",
+      "hid3",
+      "hid4",
+      "hid5",
+      "hid6",
+      "hid7",
+      "hid8",
+      "hid9",
+      "hid10",
+      "hid11",
+      "hid12",
+      "hid13",
+      "hid14",
+      "hid15",
+      "hid16",
+      "hid17",
+      "hid18",
+      "hid19",
+      "hid20",
+      "hid21",
+      "hid22",
+      "hid23",
+      "hid24",
+      "hid25",
+      "hid26",
+      "hid27",
+      "hid28",
+      "hid29",
+      "hid30",
+      "hid31"
+    ],
+    "toolchain": {
+      "python": "3.12.14",
+      "lightgbm": "4.7.0",
+      "numpy": "2.5.2"
+    }
+  }
+}

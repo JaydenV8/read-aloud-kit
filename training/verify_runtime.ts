@@ -64,7 +64,8 @@ async function main() {
 
   const rows = await readRows(utterances, limit)
   const analyzer = new ReadAloudAnalyzer()
-  console.log(`scoring backend: ${await analyzer.scoringBackend()}`)
+  const backend = await analyzer.scoringBackend()
+  console.log(`scoring backend: ${backend.backend} ${backend.version ?? '(unversioned)'}`)
 
   const tally: Record<string, Record<string, number>> = {}
   let n = 0

@@ -49,6 +49,8 @@ function word(over: Partial<GopWord> = {}): GopWord {
     tok: 'many',
     t0: 0,
     t1: 0.3,
+    f0: 0,
+    f1: 15,
     gopMean: -0.1,
     gopMin: -0.2,
     gopStd: 0.05,

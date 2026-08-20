@@ -6,10 +6,11 @@ HTTP: Hono on Node.js. Inference: TypeScript + `onnxruntime-node`. There is no P
 Client
   → Hono
   → WAV / ffmpeg
-  → ONNX wav2vec2 CTC  (one session, one forward)
-  → log-softmax
-      ├─ greedy collapse → hypothesis
-      └─ CTC Viterbi → path → GOP spans
+  → ONNX wav2vec2  (one session, one forward, two tensors out)
+      ├─ hidden layer → pooled per word and per clip → release projection
+      └─ CTC logits → log-softmax
+            ├─ greedy collapse → hypothesis
+            └─ CTC Viterbi → path → GOP spans
   → word edits (soften) + acoustic omission check
   → prosody / pauses / content / tips
   → optional scoring backend
@@ -32,7 +33,7 @@ Client
 | `features` | utterance prosody and the utterance feature vector |
 | `prosody` | adaptive pause detection |
 | `tips` | rule-driven advice from the error list |
-| `scoring` | pluggable scoring backend; none ships yet |
+| `scoring` | pluggable scoring backend; loads the release in `releases/CURRENT` |
 | `core` | the analyzer that wires the above together |
 
 ## Two evidence channels
@@ -61,4 +62,10 @@ time.
 
 A release records the key list it was fitted on and the runtime assembles its
 input from that rather than from a version number, which is why one code path
-serves both `0.4-community` and `0.5-community`. See `docs/models.md`.
+serves `0.4-community`, `0.5-community` and `0.6-community`.
+
+0.6 extends the contract rather than replacing it: `hid0`..`hidN` are a
+contiguous tail on both key lists, filled from the release's own projection of a
+pooled acoustic layer instead of from a feature function. A release that asks for
+them and an acoustic graph that cannot supply them is a refusal, not a
+zero-filled vector. See `docs/models.md`.

@@ -21,6 +21,8 @@ function asGopWord(w: { tok: string; t0: number; t1: number }): GopWord {
     tok: w.tok,
     t0: w.t0,
     t1: w.t1,
+    f0: Math.round(w.t0 * 50),
+    f1: Math.round(w.t1 * 50),
     gopMean: 0,
     gopMin: 0,
     gopStd: 0,

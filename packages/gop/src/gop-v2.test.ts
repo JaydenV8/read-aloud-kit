@@ -12,6 +12,7 @@ import {
   noCharSeries,
   utteranceGopFeatures,
   utteranceGopFeaturesV2,
+  poolFrames,
   wordVectorV2,
 } from './index.ts'
 
@@ -22,6 +23,8 @@ function word(over: Partial<GopWord> = {}): GopWord {
     tok: 'word',
     t0: 0,
     t1: 0.3,
+    f0: 0,
+    f1: 15,
     gopMean: -1,
     gopMin: -2,
     gopStd: 0.5,
@@ -178,5 +181,32 @@ describe('utteranceGopFeaturesV2', () => {
     expect(b.headTailDeltaMean).toBeCloseTo(0, 10)
     // The second has a worse single word despite a cleaner average.
     expect(b.charGopMinP10).toBeLessThan(a.charGopMinP10)
+  })
+})
+
+describe('frame pooling', () => {
+  const data = new Float32Array([
+    1, 2, /* frame 0 */
+    3, 4, /* frame 1 */
+    5, 6, /* frame 2 */
+    7, 8, /* frame 3 */
+  ])
+
+  it('averages the frames in a half-open span', () => {
+    expect(Array.from(poolFrames(data, 2, 4, 1, 3))).toEqual([4, 5])
+  })
+
+  it('reads a single frame without dividing', () => {
+    expect(Array.from(poolFrames(data, 2, 4, 2, 3))).toEqual([5, 6])
+  })
+
+  it('clamps a span that runs past the end rather than reading past the buffer', () => {
+    expect(Array.from(poolFrames(data, 2, 4, 3, 99))).toEqual([7, 8])
+  })
+
+  it('never returns an empty mean for an empty span', () => {
+    // A word the aligner squeezed onto nothing still has to produce a vector;
+    // returning zeros would look like a real observation of silence.
+    expect(Array.from(poolFrames(data, 2, 4, 2, 2))).toEqual([5, 6])
   })
 })

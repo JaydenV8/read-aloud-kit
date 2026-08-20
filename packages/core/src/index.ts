@@ -9,7 +9,9 @@ import {
 } from '@readaloudkit/ctc'
 import { contentFromEdits, dualTrackTokens, editsFromTexts } from '@readaloudkit/edits'
 import { acousticFeatures, pausesFromWords, prosodyFromAlignment } from '@readaloudkit/features'
-import { wordConfidence, wordIsOmission, wordsFromPath } from '@readaloudkit/gop'
+import { wordConfidence, wordIsOmission, wordsFromPath,
+  poolFrames,
+} from '@readaloudkit/gop'
 import { acousticReady, getAcousticModel } from '@readaloudkit/inference'
 import { displayPauses } from '@readaloudkit/prosody'
 import { loadScoringBackend } from '@readaloudkit/scoring'
@@ -23,6 +25,7 @@ import {
   type GopWord,
   type PauseSpan,
   type ReadAloudAnalysis,
+  type PooledHidden,
   type ScoringBackend,
   type Scores,
   type WordStatus,
@@ -36,6 +39,15 @@ export type AnalyzeInput = {
   contentMode?: ContentMode
   /** Set false to report only what the edit alignment found. */
   acousticOmissions?: boolean
+  /**
+   * Return the pooled hidden layer alongside the analysis.
+   *
+   * Off by default and never set by the HTTP route: it is hundreds of floats
+   * per word that mean nothing to a caller. Feature extraction for training
+   * turns it on, so that the vectors a release is fitted on come out of the
+   * same code that serves requests.
+   */
+  includeHidden?: boolean
 }
 
 const KIND_STATUS: Record<string, WordStatus> = {
@@ -217,6 +229,22 @@ export class ReadAloudAnalyzer {
       })
     }
 
+    // Pooled here rather than in the scoring backend so that training
+    // extraction and serving share one implementation of it, and so that a
+    // backend which does not want it never pays for it beyond this.
+    let hidden: PooledHidden | undefined
+    if (acoustic.hidden && acoustic.hiddenSize) {
+      const size = acoustic.hiddenSize
+      hidden = {
+        words: gopWords.map((w) =>
+          poolFrames(acoustic.hidden!, size, acoustic.frames, w.f0, w.f1),
+        ),
+        utterance: poolFrames(acoustic.hidden, size, acoustic.frames, 0, acoustic.frames),
+        size,
+        layer: acoustic.hiddenLayer ?? null,
+      }
+    }
+
     const backend = await this.scoring
     const backendResult = await backend.score({
       durationMs: pcm.durationMs,
@@ -226,6 +254,7 @@ export class ReadAloudAnalyzer {
       reference: ref,
       prosody,
       content,
+      hidden,
     })
 
     // Scored words line up with gopWords; insertions carry no alignment and so
@@ -265,6 +294,7 @@ export class ReadAloudAnalyzer {
       pauses,
       tips: buildTips({ words, prosody, pauses }),
       scores,
+      ...(input.includeHidden && hidden ? { hidden } : {}),
     }
   }
 }

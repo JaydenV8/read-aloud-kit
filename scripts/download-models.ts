@@ -25,19 +25,25 @@ import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const destDir = resolve(here, '..', 'models')
+// The asset lives under its own tag rather than a package release. Replacing
+// the file on `v0.1.0` would have made every existing checkout -- which pins the
+// previous SHA-256 -- delete its download and fail, so each graph keeps its own
+// tag and old clones keep resolving the one they were pinned to.
 const expectedName = 'wav2vec2-base-960h-ctc.onnx'
-const expectedSha256 = '84182b6d8d3abc71ea583670cc11434d0f894663ef65a88db693a7890d084a85'
+const expectedSha256 = 'a5162c4510b81c13d7c5dab8c80c577caf643bfcada663d74a6fcc9c02b57356'
 
 const modelUrl =
   process.env.READALOUDKIT_MODEL_URL ??
-  `https://github.com/JaydenV8/read-aloud-kit/releases/download/v0.1.0/${expectedName}`
+  `https://github.com/JaydenV8/read-aloud-kit/releases/download/acoustic-v2/${expectedName}`
 
 const dest = resolve(destDir, expectedName)
 
-const localSources = [
-  process.env.READALOUDKIT_MODEL_SRC,
-  '/tmp/rak-models/wav2vec2-base-960h-ctc.onnx',
-].filter(Boolean) as string[]
+// An explicitly named source is honoured or reported; the scratch directory is
+// only a convenience and is skipped when it holds something else. Choosing
+// either by existence alone means one stale copy from an earlier export makes
+// this command fail the same way forever.
+const explicitSrc = process.env.READALOUDKIT_MODEL_SRC
+const cacheSrc = '/tmp/rak-models/wav2vec2-base-960h-ctc.onnx' 
 
 function sha256(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex')
@@ -104,8 +110,7 @@ if (existsSync(dest) && statSync(dest).size > 0 && sha256(dest) === expectedSha2
 }
 
 // 2. local export
-const src = localSources.find((p) => existsSync(p))
-if (src) {
+function useLocal(src: string): void {
   console.log(`using local export  ${src}`)
   copyFileSync(src, dest)
   const labelsSrc = resolve(dirname(src), 'labels.json')
@@ -113,6 +118,28 @@ if (src) {
   if (existsSync(labelsSrc) && !existsSync(labelsDest)) copyFileSync(labelsSrc, labelsDest)
   verify(dest)
   process.exit(0)
+}
+
+if (explicitSrc) {
+  if (!existsSync(explicitSrc)) {
+    console.error(`READALOUDKIT_MODEL_SRC=${explicitSrc} does not exist`)
+    process.exit(1)
+  }
+  const hash = sha256(explicitSrc)
+  if (hash !== expectedSha256) {
+    console.error(`READALOUDKIT_MODEL_SRC=${explicitSrc} is not the expected model
+  expected ${expectedSha256}
+  actual   ${hash}
+Re-export it with \`pnpm models:export\`, or unset the variable to download.`)
+    process.exit(1)
+  }
+  useLocal(explicitSrc)
+}
+
+if (existsSync(cacheSrc)) {
+  const hash = sha256(cacheSrc)
+  if (hash === expectedSha256) useLocal(cacheSrc)
+  console.log(`ignoring ${cacheSrc}: sha256 ${hash.slice(0, 12)}… is a different model`)
 }
 
 // 3. download

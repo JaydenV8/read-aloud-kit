@@ -1,0 +1,55 @@
+{
+  "split": "test",
+  "utterances": 2500,
+  "threshold": 0.8,
+  "word_level": {
+    "n": 15967,
+    "accuracy": 0.8603,
+    "macro_f1": 0.5467,
+    "majority_class_accuracy": 0.8807,
+    "per_class": {
+      "good": {
+        "precision": 0.9333,
+        "recall": 0.927,
+        "f1": 0.9302,
+        "support": 14062
+      },
+      "average": {
+        "precision": 0.3071,
+        "recall": 0.2584,
+        "f1": 0.2806,
+        "support": 1010
+      },
+      "bad": {
+        "precision": 0.3817,
+        "recall": 0.4905,
+        "f1": 0.4293,
+        "support": 895
+      }
+    },
+    "needs_attention": {
+      "flagged": 2000,
+      "precision": 0.487,
+      "recall": 0.5113,
+      "trueRate": 0.1193
+    }
+  },
+  "utterance_accuracy": {
+    "n": 2500,
+    "pearson": 0.7029,
+    "mae": 0.7979,
+    "predict_mean_mae": 1.131
+  },
+  "utterance_fluency": {
+    "n": 2500,
+    "pearson": 0.761,
+    "mae": 0.662,
+    "predict_mean_mae": 1.0559
+  },
+  "utterance_total": {
+    "n": 2500,
+    "pearson": 0.732,
+    "mae": 0.7602,
+    "predict_mean_mae": 1.1821
+  }
+}

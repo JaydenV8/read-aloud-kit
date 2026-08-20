@@ -25,16 +25,61 @@ import type {
  */
 export const ATTENTION_THRESHOLD = 0.8
 
+/**
+ * How to turn a pooled hidden layer into features.
+ *
+ * The projection is fitted on the training corpus, so it belongs to the release
+ * and not to the acoustic model -- which stays a stock third-party checkpoint
+ * that happens to expose one more tensor. Standardisation and PCA are both
+ * affine, so they fold into a single `y = xA + b` and ship as one small graph.
+ */
+export type HiddenProjection = {
+  /** Which transformer layer the weights were fitted on, 1-based. */
+  layer: number
+  /** Projection for word-pooled vectors. */
+  word: string
+  /** Projection for the clip-pooled vector; fitted separately. */
+  utterance: string
+  size: number
+  components: number
+}
+
+/** Feature keys of the form `hid0`, `hid1`, ... come from the projection. */
+const HIDDEN_KEY = /^hid(\d+)$/
+
 export type ScoringManifest = {
   /** Which release these weights are, e.g. `0.5-community`. */
   version: string
   inputName: string
   wordFeatureKeys: string[]
   utteranceFeatureKeys: string[]
+  hiddenProjection?: HiddenProjection
   wordLevels: WordLevel[]
   displayScale: { from: [number, number]; to: [number, number] }
   heads: Record<string, { file: string; shipped: boolean }>
   outputs: Record<string, string>
+}
+
+/**
+ * Split a head's key list into the features read off the GOP/prosody vectors and
+ * the count taken from the hidden projection.
+ *
+ * The hidden keys must be a contiguous tail, numbered from zero. Interleaving
+ * them would still work arithmetically but would leave the manifest as the only
+ * record of the order, and an order that lives in exactly one place is one
+ * nobody can check.
+ */
+export function splitHiddenKeys(keys: string[], what: string): { plain: string[]; hidden: number } {
+  const first = keys.findIndex((k) => HIDDEN_KEY.test(k))
+  if (first < 0) return { plain: keys, hidden: 0 }
+  const tail = keys.slice(first)
+  tail.forEach((k, i) => {
+    const m = HIDDEN_KEY.exec(k)
+    if (!m || Number(m[1]) !== i) {
+      throw new Error(`${what}: hidden feature keys must be a contiguous hid0..hidN tail, got ${k}`)
+    }
+  })
+  return { plain: keys.slice(0, first), hidden: tail.length }
 }
 
 export class NoopScoringBackend implements ScoringBackend {
@@ -115,6 +160,11 @@ export class CommunityScoringBackend implements ScoringBackend {
     private readonly wordLevel: Session,
     private readonly utterance: Record<string, Session>,
     private readonly utteranceIndex: number[],
+    private readonly keys: {
+      word: { plain: string[]; hidden: number }
+      utterance: { plain: string[]; hidden: number }
+    },
+    private readonly projection: { word: Session; utterance: Session } | null,
   ) {}
 
   static async load(dir = defaultScoringDir()): Promise<CommunityScoringBackend> {
@@ -138,11 +188,13 @@ export class CommunityScoringBackend implements ScoringBackend {
     // the weights expect. v2's list is a superset of v1's with the shared keys
     // unchanged, so one lookup table serves either generation.
     const full = [...UTTERANCE_FEATURE_KEYS, ...UTTERANCE_GOP_KEYS_V2] as string[]
-    const utteranceIndex = manifest.utteranceFeatureKeys.map((k) => {
-      const i = full.indexOf(k)
-      if (i < 0) throw new Error(`scoring head wants unknown feature ${k}`)
-      return i
-    })
+    const utteranceIndex = manifest.utteranceFeatureKeys
+      .filter((k) => !HIDDEN_KEY.test(k))
+      .map((k) => {
+        const i = full.indexOf(k)
+        if (i < 0) throw new Error(`scoring head wants unknown feature ${k}`)
+        return i
+      })
 
     // A head fed a vector of the wrong width does not fail, it scores nonsense.
     // The graph knows what it wants, so check it once here rather than never.
@@ -164,7 +216,67 @@ export class CommunityScoringBackend implements ScoringBackend {
       expect(session, manifest.utteranceFeatureKeys.length, field)
     }
 
-    return new CommunityScoringBackend(manifest, wordLevel, utterance, utteranceIndex)
+    const keys = {
+      word: splitHiddenKeys(manifest.wordFeatureKeys, 'word_level.onnx'),
+      utterance: splitHiddenKeys(manifest.utteranceFeatureKeys, 'utterance heads'),
+    }
+    const wantsHidden = keys.word.hidden > 0 || keys.utterance.hidden > 0
+    const proj = manifest.hiddenProjection
+    if (wantsHidden !== Boolean(proj)) {
+      throw new Error(
+        proj
+          ? 'manifest declares a hidden projection but no head asks for hid* features'
+          : 'heads ask for hid* features but the manifest declares no hidden projection',
+      )
+    }
+    for (const [what, n] of [
+      ['word', keys.word.hidden],
+      ['utterance', keys.utterance.hidden],
+    ] as const) {
+      if (proj && n > 0 && n !== proj.components) {
+        throw new Error(`${what} head wants ${n} hidden features, projection emits ${proj.components}`)
+      }
+    }
+    const projection = proj
+      ? { word: await open(proj.word), utterance: await open(proj.utterance) }
+      : null
+
+    return new CommunityScoringBackend(
+      manifest,
+      wordLevel,
+      utterance,
+      utteranceIndex,
+      keys,
+      projection,
+    )
+  }
+
+  /**
+   * Run pooled vectors through the release's projection.
+   *
+   * One call for every word rather than one per word: the projection is a
+   * single matrix multiply and the per-call overhead dominates it.
+   */
+  private async project(
+    which: 'word' | 'utterance',
+    rows: Float32Array[],
+    components: number,
+  ): Promise<Float32Array> {
+    const ort = await import('onnxruntime-node')
+    const size = this.manifest.hiddenProjection!.size
+    const flat = new Float32Array(rows.length * size)
+    rows.forEach((r, i) => flat.set(r, i * size))
+    const session = this.projection![which]
+    const out = await session.run({
+      [session.inputNames[0]!]: new ort.Tensor('float32', flat, [rows.length, size]),
+    })
+    const data = out[session.outputNames[0]!]!.data as Float32Array
+    if (data.length !== rows.length * components) {
+      throw new Error(
+        `hidden projection returned ${data.length} values, expected ${rows.length * components}`,
+      )
+    }
+    return data
   }
 
   async score(input: ScoringInput): Promise<ScoringResult | null> {
@@ -172,11 +284,42 @@ export class CommunityScoringBackend implements ScoringBackend {
     const ort = await import('onnxruntime-node')
     const levels = this.manifest.wordLevels
 
+    // A release fitted on a hidden layer cannot be served by a graph that does
+    // not emit one. Refusing is the only honest answer: filling zeros would
+    // return numbers that look like scores and are not.
+    if (this.projection && !input.hidden) {
+      throw new Error(
+        `release ${this.manifest.version} needs hidden layer ${this.manifest.hiddenProjection!.layer};` +
+          ' the installed acoustic model does not emit one',
+      )
+    }
+    if (this.projection && input.hidden) {
+      const want = this.manifest.hiddenProjection!
+      if (input.hidden.size !== want.size) {
+        throw new Error(`hidden layer is ${input.hidden.size}-dimensional, projection wants ${want.size}`)
+      }
+      if (input.hidden.layer !== null && input.hidden.layer !== want.layer) {
+        throw new Error(
+          `acoustic model emits layer ${input.hidden.layer}, release was fitted on ${want.layer}`,
+        )
+      }
+    }
+
+    const wordHidden =
+      this.keys.word.hidden > 0
+        ? await this.project('word', input.hidden!.words, this.keys.word.hidden)
+        : null
+
     const nWordFeatures = this.manifest.wordFeatureKeys.length
+    const nPlain = this.keys.word.plain.length
     const flat = new Float32Array(input.gopWords.length * nWordFeatures)
-    input.gopWords.forEach((w, i) =>
-      flat.set(wordVectorBy(w, this.manifest.wordFeatureKeys), i * nWordFeatures),
-    )
+    input.gopWords.forEach((w, i) => {
+      const base = i * nWordFeatures
+      flat.set(wordVectorBy(w, this.keys.word.plain), base)
+      if (wordHidden) {
+        flat.set(wordHidden.subarray(i * this.keys.word.hidden, (i + 1) * this.keys.word.hidden), base + nPlain)
+      }
+    })
     const wordOut = await this.wordLevel.run({
       [this.manifest.inputName]: new ort.Tensor('float32', flat, [
         input.gopWords.length,
@@ -210,7 +353,13 @@ export class CommunityScoringBackend implements ScoringBackend {
       ...utteranceVector(input.prosody),
       ...UTTERANCE_GOP_KEYS_V2.map((k) => agg[k]),
     ]
-    const x = Float32Array.from(this.utteranceIndex.map((i) => fullVector[i] ?? 0))
+    const uttHidden =
+      this.keys.utterance.hidden > 0
+        ? await this.project('utterance', [input.hidden!.utterance], this.keys.utterance.hidden)
+        : null
+    const x = new Float32Array(this.manifest.utteranceFeatureKeys.length)
+    x.set(this.utteranceIndex.map((i) => fullVector[i] ?? 0))
+    if (uttHidden) x.set(uttHidden, this.keys.utterance.plain.length)
     const dims = [1, x.length]
 
     const result: ScoringResult = { backend: this.name, words }
